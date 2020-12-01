@@ -33,11 +33,11 @@ class network():
         # Add layers
         self.model.add(tf.keras.layers.Dense(60, activation='relu'))
         self.model.add(tf.keras.layers.Dense(60, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(1, activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 
         # Loss object: compute the error
-        self.train_loss_object = tf.keras.losses.CategoricalCrossentropy()
-        self.test_loss_object = tf.keras.losses.CategoricalCrossentropy()
+        self.train_loss_object = tf.keras.losses.BinaryCrossentropy()
+        self.test_loss_object = tf.keras.losses.BinaryCrossentropy()
         # Optimizer: optimize parameters to decrease error
         self.optimizer = tf.keras.optimizers.Adam()
         # Accumulator: Metrics use to track the progress of the training loss during the training
@@ -85,7 +85,7 @@ class network():
 
     def train(self, x_train, y_train, x_test, y_test):
 
-        for epoch in range(0, 10):
+        for epoch in range(0, 5):
             for _ in range(0, 100):
                 # Make a train step
                 self.train_step(x_train, y_train, x_test, y_test)
@@ -133,6 +133,18 @@ def same_team_(sender,player_j):
         return int(player_j <= 11)
     else:
         return int(player_j > 11)
+
+def import_and_save_dataset():
+
+    # Import dataset
+    input_dataframe = pd.read_csv('input_training_set.csv', sep=',')
+    output_dataframe = pd.read_csv('output_training_set.csv', sep=',')
+
+    x_pairs, y_pairs = make_pair_of_players(input_dataframe, output_dataframe)
+
+    # Save to a csv file
+    x_pairs.to_csv('save_x_pairs.csv', header=True, index=True, mode='w')
+    y_pairs.to_csv('save_y_pairs.csv', header=True, index=True, mode='w')
 
 
 def first():
@@ -194,18 +206,49 @@ def first():
 
 
 if __name__ == '__main__':
-    print('test')
-    # Import dataset
-    input_dataframe = pd.read_csv('input_training_set.csv', sep=',')
-    output_dataframe = pd.read_csv('output_training_set.csv', sep=',')
 
-    x_pairs, y_pairs = make_pair_of_players(input_dataframe, output_dataframe)
+    # import_and_save_dataset()
 
-    # Save to a csv file
-    x_pairs.to_csv('save_x_pairs.csv', header=True, index=True, mode='w')
-    y_pairs.to_csv('save_y_pairs.csv', header=True, index=True, mode='w')
+    # Read dataset:
+    x = pd.read_csv('save_x_pairs.csv', sep=',', index_col=0)
+    y = pd.read_csv('save_y_pairs.csv', sep=',', index_col=0)
 
-    print(x_pairs)
+    # Got numpy versions
+    x_np = x.to_numpy()
+    y_np = y.to_numpy()
+
+    # Split the dataset
+    x_train, x_test, y_train, y_test = train_test_split(x_np, y_np, test_size=0.2)
+
+    # Create the model
+    model = network()
+
+    # Train the model
+    model.train(x_train, y_train, x_test, y_test)
+
+    pred = model.model.predict(x_test)
+
+    accu = 0
+
+    one_counter = 0
+    true_one_counter = 0
+    for i in range(0, pred.shape[0]):
+        if y_test[i] == 1: one_counter += 1
+        if pred[i] >= 0.5 and y_test[i] == 1:
+            accu += 1
+            true_one_counter += 1
+        if pred[i] < 0.5 and y_test[i] == 0:
+            accu += 1
+
+
+
+    accu /= pred.shape[0]
+
+    print('Test accuracy: {}'.format(accu))
+    print('One counter = {} - True one counter = {}'.format(one_counter, true_one_counter))
+
+
+
 
 
 
