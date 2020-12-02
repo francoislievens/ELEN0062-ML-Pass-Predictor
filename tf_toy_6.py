@@ -58,7 +58,7 @@ class network():
         self.test_loss = tf.keras.metrics.Mean(name='test_loss')
 
     @tf.function
-    def train_step(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test):
+    def train_step(self, x_train, y_train, x_test, y_test):
         """
         Training function
         """
@@ -67,10 +67,10 @@ class network():
             # Make prediction
             train_predictions = self.model(x_train)
             # Get the error:
-            train_loss = self.train_loss_object(y_train, train_predictions, sample_weight=s_weights_train)
+            train_loss = self.train_loss_object(y_train, train_predictions)
 
         test_predictions = self.model(x_test)
-        test_loss = self.test_loss_object(y_test, test_predictions, sample_weight=s_weights_test)
+        test_loss = self.test_loss_object(y_test, test_predictions)
         # Compute the gradient who respect the loss
         gradients = tape.gradient(train_loss, self.model.trainable_variables)
         # Change weights of the model
@@ -96,12 +96,12 @@ class network():
         return total
 
 
-    def train(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test):
+    def train(self, x_train, y_train, x_test, y_test):
 
         for epoch in range(0, 10):
-            for _ in range(0, 100):
+            for _ in range(0, 30):
                 # Make a train step
-                self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test)
+                self.train_step(x_train, y_train, x_test, y_test)
 
             print('Epoch: {}'.format(epoch))
             # Print the loss: return the mean of all error in the accumulator
@@ -262,18 +262,146 @@ def same_team_(sender,player_j):
     else:
         return int(player_j > 11)
 
+def classic_import_and_save_dataset():
+
+    # Import dataset
+    input_dataframe = pd.read_csv('input_training_set.csv', sep=',')
+    output_dataframe = pd.read_csv('output_training_set.csv', sep=',')
+
+    x_pairs, y_pairs = classic_make_pair_of_players(input_dataframe, output_dataframe)
+
+    # Save to a csv file
+    x_pairs.to_csv('save_x_pairs_classic.csv', header=True, index=True, mode='w')
+    y_pairs.to_csv('save_y_pairs_classic.csv', header=True, index=True, mode='w')
+
+
+def classic_make_pair_of_players(X_, y_=None):
+    n_ = X_.shape[0]
+    pair_feature_col = ["sender", "x_sender", "y_sender", "player_j", "x_j", "y_j", "same_team",
+                        "is_pass_forward", "distance", "dist_opp", "dist_tm"]
+    X_pairs = pd.DataFrame(data=np.zeros((n_ * 22, len(pair_feature_col))), columns=pair_feature_col)
+    y_pairs = pd.DataFrame(data=np.zeros((n_ * 22, 1)), columns=["pass"])
+
+    # From pass to pair of players
+    idx = 0
+    for i in range(n_):
+        sender = X_.iloc[i].sender
+        players = np.arange(1, 23)
+        # other_players = np.delete(players, sender-1)
+        p_i_ = X_.iloc[i]
+        # Mean dist from same team
+        s_t_dist = 0
+        # Mean dist adv
+        adv_t_dist = 0
+        idx_start = idx
+        # Closer same team dist
+        closer_st = 5000
+        # Closer adv dist
+        closer_adv = 5000
+        # Game zone
+        game_zone = 0
+        if X_.iloc[i]["x_{:0.0f}".format(sender)] < 0:
+            game_zone = 1
+        for player_j in players:
+            dist_opp = avg_dist_opp(sender, player_j, p_i_)
+            dist_tm = avg_dist_teammates(sender, player_j, p_i_)
+            X_pairs.iloc[idx] = [sender / 22, p_i_["x_{:0.0f}".format(sender)] / MAX_X_ABS_VAL,
+                                 p_i_["y_{:0.0f}".format(sender)] / MAX_Y_ABS_VAL,
+                                 player_j / 22, p_i_["x_{:0.0f}".format(player_j)] / MAX_X_ABS_VAL,
+                                 p_i_["y_{:0.0f}".format(player_j)] / MAX_Y_ABS_VAL,
+                                 same_team_(sender, player_j), is_pass_forward(sender, player_j, p_i_), 0, dist_opp,
+                                 dist_tm]
+            """
+            if same_team_(sender, player_j) == 1:
+                s_t_dist += distance((p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)]), (p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)]))
+                if s_t_dist <= closer_st:
+                    closer_st = s_t_dist
+            if same_team_(sender, player_j) == 0:
+                adv_t_dist += distance((p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)]), (p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)]))
+                if adv_t_dist <= closer_adv:
+                    closer_adv = adv_t_dist
+            """
+            if not y_ is None:
+                y_pairs.iloc[idx]["pass"] = int(player_j == y_.iloc[i])
+
+            idx += 1
+        # idx_end = idx
+        # s_t_dist /= 10
+        # adv_t_dist /= 11
+        # for j in range(idx_start, idx_end):
+        # X_pairs.iloc[j]['same_team_moy_dist'] = s_t_dist
+        # X_pairs.iloc[j]['adv_team_moy_dist'] = adv_t_dist
+        # X_pairs.iloc[j]['closer_same_team_dist'] = closer_st
+        # X_pairs.iloc[j]['closer_adv_dist'] = closer_adv
+        # X_pairs.iloc[j]['game_zone'] = game_zone
+    distance = compute_distance_(X_pairs)
+    max_dist = np.max(distance)
+    X_pairs["distance"] = distance / max_dist
+    dist_opp = X_pairs["dist_opp"]
+    max_dist_opp = np.max(X_pairs["dist_opp"])
+    X_pairs["dist_opp"] = dist_opp / max_dist_opp
+    dist_tm = X_pairs["dist_tm"]
+    max_dist_tm = np.max(X_pairs["dist_tm"])
+    X_pairs["dist_tm"] = dist_tm / max_dist_tm
+    X_pairs = X_pairs.drop(columns=["x_sender", "y_sender", "x_j", "y_j"])
+
+    return X_pairs, y_pairs
+
 def import_and_save_dataset():
 
     # Import dataset
     input_dataframe = pd.read_csv('input_training_set.csv', sep=',')
     output_dataframe = pd.read_csv('output_training_set.csv', sep=',')
 
-    x_pairs, y_pairs = make_pair_of_players(input_dataframe, output_dataframe)
+    x_pairs_df, y_pairs_df = make_pair_of_players(input_dataframe, output_dataframe)
+    # To numpy
+    x_pairs = x_pairs_df.to_numpy()
+    y_pairs = y_pairs_df.to_numpy()
+    # Count each pass row:
+    pass_counter = 0
+    for i in range(0, len(y_pairs)):
+        if y_pairs[i] == 1:
+            pass_counter += 1
+
+    # Create the new arrays:
+    new_x = np.zeros((x_pairs.shape[0] + 20 * pass_counter, x_pairs.shape[1]))
+    new_y = np.zeros((x_pairs.shape[0] + 20 * pass_counter, y_pairs.shape[1]))
+
+    # copy and multiply by 21 each pass row
+    index = 0
+    for i in range(0, x_pairs.shape[0]):
+        new_x[index] = x_pairs[i]
+        new_y[index] = y_pairs[i]
+        index += 1
+        if y_pairs[i] == 1:
+            for j in range(0, 20):
+                new_x[index] = x_pairs[i]
+                new_y[index] = y_pairs[i]
+                index += 1
+
+    x_pairs = pd.DataFrame(data=new_x, columns=x_pairs_df.columns, index=None)
+    y_pairs = pd.DataFrame(data=new_y, columns=y_pairs_df.columns, index=None)
 
     # Save to a csv file
     x_pairs.to_csv('save_x_pairs.csv', header=True, index=True, mode='w')
     y_pairs.to_csv('save_y_pairs.csv', header=True, index=True, mode='w')
 
+def shuffle_dataset(x, y):
+
+    new_x = np.copy(x)
+    new_y = np.copy(y)
+    # shuffle the dataset:
+    indexer = np.arange(new_x.shape[0])
+    np.random.shuffle(indexer)
+    tmp_x = new_x
+    tmp_y = new_y
+    new_x = np.zeros(tmp_x.shape)
+    new_y = np.zeros(tmp_y.shape)
+    for i in range(0, indexer.shape[0]):
+        new_x[i] = tmp_x[indexer[i]]
+        new_y[i] = tmp_y[indexer[i]]
+
+    return new_x, new_y
 
 def first():
 
@@ -336,20 +464,29 @@ def first():
 if __name__ == '__main__':
 
     #import_and_save_dataset()
+    #classic_import_and_save_dataset()
+    #print('DONE')
 
     # Read dataset:
     x = pd.read_csv('save_x_pairs.csv', sep=',', index_col=0)
     y = pd.read_csv('save_y_pairs.csv', sep=',', index_col=0)
+    classic_x = pd.read_csv('save_x_pairs_classic.csv', sep=',', index_col=0)
+    classic_y = pd.read_csv('save_y_pairs_classic.csv', sep=',', index_col=0)
+
 
     x["same_team"] = x["same_team"] - 0.5
 
     # Got numpy versions
     x_np = x.to_numpy()
     y_np = y.to_numpy()
+    classic_x_np = classic_x.to_numpy()
+    classic_y_np = classic_y.to_numpy()
 
     # Split the dataset
     x_train, x_test, y_train, y_test = train_test_split(x_np, y_np, shuffle=False, test_size=0.19995392766)
-
+    c_x_train, c_x_test, c_y_tran, c_y_test = train_test_split(classic_x_np, classic_y_np, shuffle=False, test_size=0.19995392766)
+    x_train, y_train = shuffle_dataset(x_train, y_train)
+    x_test, y_test = shuffle_dataset(x_test, y_test)
     # Create the model
     model = network()
 
@@ -365,17 +502,17 @@ if __name__ == '__main__':
 
 
     # Train the model
-    model.train(x_train, y_train, x_test, y_test, sample_weights_train, sample_weights_test)
+    model.train(x_train, y_train, x_test, y_test)
 
-    pred = model.model.predict(x_test)
+    pred = model.model.predict(c_x_test)
 
     print(y_test.shape[0])
 
-    probas = pred.reshape(int(y_test.shape[0]/22), 22)
+    probas = pred.reshape(int(c_y_test.shape[0]/22), 22)
 
     pred_players = np.argmax(probas, axis=1) + 1
 
-    one_hot_y = y_test.reshape(int(y_test.shape[0]/22), 22)
+    one_hot_y = c_y_test.reshape(int(y_test.shape[0]/22), 22)
 
     y_player = np.argmax(one_hot_y, axis=1) + 1
 
