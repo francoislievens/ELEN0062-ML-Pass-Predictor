@@ -13,6 +13,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils import check_random_state
+from keras.utils import np_utils
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+import tensorflow as tf
 
 MAX_X_ABS_VAL = 5250
 MAX_Y_ABS_VAL = 3400
@@ -271,10 +275,39 @@ if __name__ == '__main__':
     # X_features = X_LS_pairs[["distance", "same_team"]]
 
     # Build the model
-    model = MLPClassifier()
+    model = tf.keras.models.Sequential()
+
+    # Add layers
+    model.add(tf.keras.layers.Dense(47, activation='relu'))
+    model.add(tf.keras.layers.Dense(200, activation='relu'))
+    model.add(tf.keras.layers.Dense(200, activation='relu'))
+    model.add(tf.keras.layers.Dense(200, activation='relu'))
+    model.add(tf.keras.layers.Dense(200, activation='relu'))
+    model.add(tf.keras.layers.Dense(1, activation='tanh'))
+
+
+    # COmpile the model:
+    model.compile(
+        loss='binary_crossentropy',
+        optimizer='sgd',
+        metrics=['accuracy']
+    )
 
     X_train, X_test, y_train, y_test = train_test_split(X_LS_pairs, y_LS_pairs)
 
+
+    # Fit
+    history = model.fit(X_train, y_train, epochs=20, validation_split=0.2)
+
+    pred = model.predict(X_test[0])
+    score, acc = model.evaluate(X_test, y_test, verbose=0)
+
+    print('Test score:', score)
+    print('Test acc:', acc)
+
+    model.summary()
+
+    """
     with measure_time('Training'):
         print('Training...')
         model.fit(X_train, y_train)
@@ -305,7 +338,7 @@ if __name__ == '__main__':
     # Making the submission file
     fname = write_submission(probas=probas, estimated_score=predicted_score, file_name="toy_example_probas")
     print('Submission file "{}" successfully written'.format(fname))
-
+    """
     # -------------------------- Random Prediction -------------------------- #
     """
     random_state = 0
@@ -319,7 +352,7 @@ if __name__ == '__main__':
 
     # -------------------------- Calculate score -------------------------- #
 
-
+    """
     results = load_from_csv(prefix+fname)
     length = results.shape[0]
     probas = np.zeros(length)
@@ -329,3 +362,4 @@ if __name__ == '__main__':
         probas[i] = proba
     print(np.average(probas[2:]))
 
+    """
