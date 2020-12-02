@@ -31,6 +31,8 @@ METRICS = [
 ]
 
 
+MAX_X_ABS_VAL = 5250
+MAX_Y_ABS_VAL = 3400
 
 class network():
 
@@ -41,9 +43,9 @@ class network():
 
         # Add layers
         self.model.add(tf.keras.layers.Dense(60, activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(200, activation='tanh'))
         self.model.add(tf.keras.layers.Dense(60, activation='tanh'))
-        self.model.add(tf.keras.layers.Dense(60, activation='tanh'))
-        self.model.add(tf.keras.layers.Dense(60, activation='tanh'))
+        # self.model.add(tf.keras.layers.Dropout(0.2))
         self.model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 
         # Loss object: compute the error
@@ -68,14 +70,14 @@ class network():
             train_loss = self.train_loss_object(y_train, train_predictions, sample_weight=s_weights_train)
 
         test_predictions = self.model(x_test)
-        # test_loss = self.test_loss_object(y_test, test_predictions, sample_weight=s_weights_test)
+        test_loss = self.test_loss_object(y_test, test_predictions, sample_weight=s_weights_test)
         # Compute the gradient who respect the loss
         gradients = tape.gradient(train_loss, self.model.trainable_variables)
         # Change weights of the model
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         # Add error in accumulator
         self.train_loss(train_loss)
-        # self.test_loss(test_loss)
+        self.test_loss(test_loss)
 
     def personal_loss(self, y, x):
 
@@ -96,29 +98,99 @@ class network():
 
     def train(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test):
 
-        for epoch in range(0, 50):
+        for epoch in range(0, 10):
             for _ in range(0, 100):
                 # Make a train step
                 self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test)
 
             print('Epoch: {}'.format(epoch))
             # Print the loss: return the mean of all error in the accumulator
-            # print('Test Loss: %s' % self.test_loss.result())
+            print('Test Loss: %s' % self.test_loss.result())
             print('Train Loss: %s' % self.train_loss.result())
             # Reset the accumulator
             self.train_loss.reset_states()
-            # self.test_loss.reset_states()
+            self.test_loss.reset_states()
 
 
 def distance(a, b):
 
     return np.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
+
+def is_pass_forward(sender, receiver, columns):
+    sender_x = columns["x_{:0.0f}".format(sender)]
+    receiver_x = columns["x_{:0.0f}".format(receiver)]
+    left_most = MAX_X_ABS_VAL
+    left_most_player = 0
+    for player in range(1, 23):
+        player_x = columns["x_{:0.0f}".format(player)]
+        if left_most > player_x:
+            left_most = player_x
+            left_most_player = player
+    same_team = 0
+    if left_most_player < 12:
+        if sender < 12:
+            same_team = 1
+    else:
+        if sender >= 12:
+            same_team = 1
+    if same_team == 1:
+        return np.abs(sender_x - receiver_x)/MAX_X_ABS_VAL if (receiver_x - left_most) > (sender_x - left_most) else -np.abs(sender_x - receiver_x)/MAX_X_ABS_VAL
+    else:
+        return np.abs(sender_x - receiver_x)/MAX_X_ABS_VAL if (receiver_x - left_most) < (sender_x - left_most) else -np.abs(sender_x - receiver_x)/MAX_X_ABS_VAL
+
+def get_diagonale():
+    return np.sqrt(MAX_X_ABS_VAL**2 + MAX_Y_ABS_VAL**2)
+
+def compute_distance_(X_):
+    d = np.zeros((X_.shape[0],))
+    d = np.sqrt((X_["x_sender"]-X_["x_j"])**2 + (X_["y_sender"]-X_["y_j"])**2)
+    return d
+
+
+def avg_dist_teammates(sender, receiver, columns):
+    if sender == receiver:
+        return 0
+    sender_x = columns["x_{:0.0f}".format(sender)]
+    sender_y = columns["y_{:0.0f}".format(sender)]
+    receiver_x = columns["x_{:0.0f}".format(receiver)]
+    receiver_y = columns["y_{:0.0f}".format(receiver)]
+    dist_sender_receiver = np.sqrt((sender_x - receiver_x)**2 + (sender_y - receiver_y)**2)
+    dist = get_diagonale()
+    for player in range(1,23):
+        if player == sender or player == receiver or same_team_(player, sender) != 1:
+            continue
+        player_x = columns["x_{:0.0f}".format(player)]
+        player_y = columns["y_{:0.0f}".format(player)]
+        dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
+        dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
+        dist = min(dist, dist_player_receiver + dist_player_sender)
+    return dist
+
+
+def avg_dist_opp(sender, receiver, columns):
+    if sender == receiver:
+        return 0
+    sender_x = columns["x_{:0.0f}".format(sender)]
+    sender_y = columns["y_{:0.0f}".format(sender)]
+    receiver_x = columns["x_{:0.0f}".format(receiver)]
+    receiver_y = columns["y_{:0.0f}".format(receiver)]
+    dist_sender_receiver = np.sqrt((sender_x - receiver_x)**2 + (sender_y - receiver_y)**2)
+    dist = get_diagonale()
+    for player in range(1,23):
+        if player == sender or player == receiver or same_team_(player, sender) == 1:
+            continue
+        player_x = columns["x_{:0.0f}".format(player)]
+        player_y = columns["y_{:0.0f}".format(player)]
+        dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
+        dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
+        dist = min(dist, dist_player_receiver + dist_player_sender)
+    return dist
+
 def make_pair_of_players(X_, y_=None):
     n_ = X_.shape[0]
     pair_feature_col = ["sender", "x_sender", "y_sender", "player_j", "x_j", "y_j", "same_team",
-                        "same_team_moy_dist", "adv_team_moy_dist", "closer_same_team_dist",
-                        "closer_adv_dist", "game_zone"]
+                        "is_pass_forward", "distance", "dist_opp", "dist_tm"]
     X_pairs = pd.DataFrame(data=np.zeros((n_ * 22, len(pair_feature_col))), columns=pair_feature_col)
     y_pairs = pd.DataFrame(data=np.zeros((n_ * 22, 1)), columns=["pass"])
 
@@ -143,10 +215,12 @@ def make_pair_of_players(X_, y_=None):
         if X_.iloc[i]["x_{:0.0f}".format(sender)] < 0:
             game_zone = 1
         for player_j in players:
-
-            X_pairs.iloc[idx] = [sender, p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)],
-                                 player_j, p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)],
-                                 same_team_(sender, player_j), 0, 0, 0, 0, 0]
+            dist_opp = avg_dist_opp(sender, player_j, p_i_)
+            dist_tm = avg_dist_teammates(sender, player_j, p_i_)
+            X_pairs.iloc[idx] = [sender/22, p_i_["x_{:0.0f}".format(sender)]/MAX_X_ABS_VAL, p_i_["y_{:0.0f}".format(sender)]/MAX_Y_ABS_VAL,
+                                 player_j/22, p_i_["x_{:0.0f}".format(player_j)]/MAX_X_ABS_VAL, p_i_["y_{:0.0f}".format(player_j)]/MAX_Y_ABS_VAL,
+                                 same_team_(sender, player_j), is_pass_forward(sender, player_j, p_i_), 0, dist_opp, dist_tm]
+            """
             if same_team_(sender, player_j) == 1:
                 s_t_dist += distance((p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)]), (p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)]))
                 if s_t_dist <= closer_st:
@@ -155,19 +229,30 @@ def make_pair_of_players(X_, y_=None):
                 adv_t_dist += distance((p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)]), (p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)]))
                 if adv_t_dist <= closer_adv:
                     closer_adv = adv_t_dist
+            """
             if not y_ is None:
                 y_pairs.iloc[idx]["pass"] = int(player_j == y_.iloc[i])
+            
             idx += 1
-        idx_end = idx
-        s_t_dist /= 10
-        adv_t_dist /= 11
-        for j in range(idx_start, idx_end):
-            X_pairs.iloc[j]['same_team_moy_dist'] = s_t_dist
-            X_pairs.iloc[j]['adv_team_moy_dist'] = adv_t_dist
-            X_pairs.iloc[j]['closer_same_team_dist'] = closer_st
-            X_pairs.iloc[j]['closer_adv_dist'] = closer_adv
-            X_pairs.iloc[j]['game_zone'] = game_zone
-
+        # idx_end = idx
+        # s_t_dist /= 10
+        # adv_t_dist /= 11
+        # for j in range(idx_start, idx_end):
+            # X_pairs.iloc[j]['same_team_moy_dist'] = s_t_dist
+            # X_pairs.iloc[j]['adv_team_moy_dist'] = adv_t_dist
+            # X_pairs.iloc[j]['closer_same_team_dist'] = closer_st
+            # X_pairs.iloc[j]['closer_adv_dist'] = closer_adv
+            # X_pairs.iloc[j]['game_zone'] = game_zone
+    distance = compute_distance_(X_pairs)
+    max_dist = np.max(distance)
+    X_pairs["distance"] = distance / max_dist
+    dist_opp = X_pairs["dist_opp"]
+    max_dist_opp = np.max(X_pairs["dist_opp"])
+    X_pairs["dist_opp"] = dist_opp / max_dist_opp
+    dist_tm = X_pairs["dist_tm"]
+    max_dist_tm = np.max(X_pairs["dist_tm"])
+    X_pairs["dist_tm"] = dist_tm / max_dist_tm
+    X_pairs = X_pairs.drop(columns=["x_sender","y_sender", "x_j", "y_j"])
 
     return X_pairs, y_pairs
 
@@ -255,6 +340,8 @@ if __name__ == '__main__':
     # Read dataset:
     x = pd.read_csv('save_x_pairs.csv', sep=',', index_col=0)
     y = pd.read_csv('save_y_pairs.csv', sep=',', index_col=0)
+
+    x["same_team"] = x["same_team"] - 0.5
 
     # Got numpy versions
     x_np = x.to_numpy()
