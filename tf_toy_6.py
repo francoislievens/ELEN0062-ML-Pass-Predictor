@@ -68,14 +68,14 @@ class network():
             train_loss = self.train_loss_object(y_train, train_predictions, sample_weight=s_weights_train)
 
         test_predictions = self.model(x_test)
-        test_loss = self.test_loss_object(y_test, test_predictions, sample_weight=s_weights_test)
+        # test_loss = self.test_loss_object(y_test, test_predictions, sample_weight=s_weights_test)
         # Compute the gradient who respect the loss
         gradients = tape.gradient(train_loss, self.model.trainable_variables)
         # Change weights of the model
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
         # Add error in accumulator
         self.train_loss(train_loss)
-        self.test_loss(test_loss)
+        # self.test_loss(test_loss)
 
     def personal_loss(self, y, x):
 
@@ -96,17 +96,18 @@ class network():
 
     def train(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test):
 
-        for epoch in range(0, 100):
+        for epoch in range(0, 50):
             for _ in range(0, 100):
                 # Make a train step
                 self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test)
 
+            print('Epoch: {}'.format(epoch))
             # Print the loss: return the mean of all error in the accumulator
-            print('Test Loss: %s' % self.test_loss.result())
+            # print('Test Loss: %s' % self.test_loss.result())
             print('Train Loss: %s' % self.train_loss.result())
             # Reset the accumulator
             self.train_loss.reset_states()
-            self.test_loss.reset_states()
+            # self.test_loss.reset_states()
 
 
 def distance(a, b):
@@ -260,28 +261,10 @@ if __name__ == '__main__':
     y_np = y.to_numpy()
 
     # Split the dataset
-    x_train, x_test, y_train, y_test = train_test_split(x_np, y_np, test_size=0.2)
+    x_train, x_test, y_train, y_test = train_test_split(x_np, y_np, shuffle=False, test_size=0.19995392766)
 
     # Create the model
     model = network()
-
-    # One hot encoding
-    y_train_np = np.copy(y_train)
-    x_train_np = np.copy(x_train)
-    y_test_np = np.copy(y_test)
-    x_test_np = np.copy(x_test)
-    one_hot_target_train = np.zeros((x_train_np.shape[0], 2))
-    one_hot_target_test = np.zeros((x_test_np.shape[0], 2))
-    for i in range(0, x_train_np.shape[0]):
-        if y_train_np[i] == 1:
-            one_hot_target_train[i][1] = 1
-        else:
-            one_hot_target_train[i][0] = 1
-    for i in range(0, x_test_np.shape[0]):
-        if y_test_np[i] == 1:
-            one_hot_target_test[i][1] = 1
-        else:
-            one_hot_target_test[i][0] = 1
 
     # Sample weights
     sample_weights_train = np.ones(x_train.shape[0])
@@ -298,6 +281,21 @@ if __name__ == '__main__':
     model.train(x_train, y_train, x_test, y_test, sample_weights_train, sample_weights_test)
 
     pred = model.model.predict(x_test)
+
+    print(y_test.shape[0])
+
+    probas = pred.reshape(int(y_test.shape[0]/22), 22)
+
+    pred_players = np.argmax(probas, axis=1) + 1
+
+    one_hot_y = y_test.reshape(int(y_test.shape[0]/22), 22)
+
+    y_player = np.argmax(one_hot_y, axis=1) + 1
+
+    print(probas[:20])
+    print(one_hot_y[:20])
+    print(pred_players[:20])
+    acc = np.average([1 if e else 0 for e in np.equal(pred_players, y_player)])
 
     for i in range(0, 10):
         print(pred[i])
@@ -319,7 +317,7 @@ if __name__ == '__main__':
 
     accu /= pred.shape[0]
 
-    print('Test accuracy: {}'.format(accu))
+    print('Test accuracy: {}'.format(acc))
     print('One counter = {} - True one counter = {}'.format(one_counter, true_one_counter))
 
 
