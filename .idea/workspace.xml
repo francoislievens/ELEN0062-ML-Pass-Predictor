@@ -22,8 +22,8 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager" selected="Python.tf_toy_6">
-    <configuration name="tf_toy_3" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="Python.TF_V2">
+    <configuration name="TF_V2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="ML_P3" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -36,7 +36,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tf_toy_3.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/TF_V2.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -135,11 +135,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.TF_V2" />
         <item itemvalue="Python.tf_toy_6" />
         <item itemvalue="Python.tf_toy_4_total_pred" />
         <item itemvalue="Python.tf_toy_5" />
         <item itemvalue="Python.tf_toy_4" />
-        <item itemvalue="Python.tf_toy_3" />
       </list>
     </recent_temporary>
   </component>
@@ -154,7 +154,7 @@
       <workItem from="1606592962189" duration="2183000" />
       <workItem from="1606598884349" duration="72000" />
       <workItem from="1606812296200" duration="41262000" />
-      <workItem from="1606931489231" duration="6787000" />
+      <workItem from="1606931489231" duration="21118000" />
     </task>
     <servers />
   </component>
@@ -167,30 +167,54 @@
     </state>
     <state x="651" y="176" key="FileChooserDialogImpl/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1606933295747" />
     <state x="2383" y="124" key="FileChooserDialogImpl/0.0.1280.689/1920.0.1366.738@1920.0.1366.738" timestamp="1606813653230" />
-    <state width="1877" height="304" key="GridCell.Tab.0.bottom" timestamp="1606938560188">
-      <screen x="0" y="0" width="1920" height="1050" />
+    <state width="1877" height="397" key="GridCell.Tab.0.bottom" timestamp="1606953661877">
+      <screen x="1920" y="0" width="1920" height="1050" />
     </state>
+    <state width="1237" height="473" key="GridCell.Tab.0.bottom/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@-1920.0.1280.700" timestamp="1606944527889" />
     <state width="1877" height="304" key="GridCell.Tab.0.bottom/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1606938560188" />
+    <state width="1877" height="397" key="GridCell.Tab.0.bottom/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606953661877" />
     <state width="1237" height="218" key="GridCell.Tab.0.bottom/0.0.1280.689/1920.0.1366.738@0.0.1280.689" timestamp="1606835952490" />
     <state width="1323" height="257" key="GridCell.Tab.0.bottom/0.0.1280.689/1920.0.1366.738@1920.0.1366.738" timestamp="1606821186188" />
-    <state width="1877" height="304" key="GridCell.Tab.0.center" timestamp="1606938560188">
-      <screen x="0" y="0" width="1920" height="1050" />
+    <state width="1877" height="397" key="GridCell.Tab.0.center" timestamp="1606953661877">
+      <screen x="1920" y="0" width="1920" height="1050" />
     </state>
+    <state width="1237" height="473" key="GridCell.Tab.0.center/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@-1920.0.1280.700" timestamp="1606944527889" />
     <state width="1877" height="304" key="GridCell.Tab.0.center/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1606938560188" />
+    <state width="1877" height="397" key="GridCell.Tab.0.center/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606953661877" />
     <state width="1237" height="218" key="GridCell.Tab.0.center/0.0.1280.689/1920.0.1366.738@0.0.1280.689" timestamp="1606835952490" />
     <state width="1323" height="257" key="GridCell.Tab.0.center/0.0.1280.689/1920.0.1366.738@1920.0.1366.738" timestamp="1606821186188" />
-    <state width="1877" height="304" key="GridCell.Tab.0.left" timestamp="1606938560187">
-      <screen x="0" y="0" width="1920" height="1050" />
+    <state width="1877" height="397" key="GridCell.Tab.0.left" timestamp="1606953661877">
+      <screen x="1920" y="0" width="1920" height="1050" />
     </state>
+    <state width="1237" height="473" key="GridCell.Tab.0.left/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@-1920.0.1280.700" timestamp="1606944527889" />
     <state width="1877" height="304" key="GridCell.Tab.0.left/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1606938560187" />
+    <state width="1877" height="397" key="GridCell.Tab.0.left/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606953661877" />
     <state width="1237" height="218" key="GridCell.Tab.0.left/0.0.1280.689/1920.0.1366.738@0.0.1280.689" timestamp="1606835952490" />
     <state width="1323" height="257" key="GridCell.Tab.0.left/0.0.1280.689/1920.0.1366.738@1920.0.1366.738" timestamp="1606821186188" />
-    <state width="1877" height="304" key="GridCell.Tab.0.right" timestamp="1606938560188">
-      <screen x="0" y="0" width="1920" height="1050" />
+    <state width="1877" height="397" key="GridCell.Tab.0.right" timestamp="1606953661877">
+      <screen x="1920" y="0" width="1920" height="1050" />
     </state>
+    <state width="1237" height="473" key="GridCell.Tab.0.right/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@-1920.0.1280.700" timestamp="1606944527889" />
     <state width="1877" height="304" key="GridCell.Tab.0.right/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1606938560188" />
+    <state width="1877" height="397" key="GridCell.Tab.0.right/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606953661877" />
     <state width="1237" height="218" key="GridCell.Tab.0.right/0.0.1280.689/1920.0.1366.738@0.0.1280.689" timestamp="1606835952490" />
     <state width="1323" height="257" key="GridCell.Tab.0.right/0.0.1280.689/1920.0.1366.738@1920.0.1366.738" timestamp="1606821186188" />
+    <state width="1877" height="352" key="GridCell.Tab.1.bottom" timestamp="1606951028904">
+      <screen x="1920" y="0" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="352" key="GridCell.Tab.1.bottom/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606951028904" />
+    <state width="1877" height="352" key="GridCell.Tab.1.center" timestamp="1606951028904">
+      <screen x="1920" y="0" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="352" key="GridCell.Tab.1.center/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606951028904" />
+    <state width="1877" height="352" key="GridCell.Tab.1.left" timestamp="1606951028904">
+      <screen x="1920" y="0" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="352" key="GridCell.Tab.1.left/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606951028904" />
+    <state width="1877" height="352" key="GridCell.Tab.1.right" timestamp="1606951028904">
+      <screen x="1920" y="0" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="352" key="GridCell.Tab.1.right/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606951028904" />
     <state x="142" y="0" key="SettingsEditor" timestamp="1606812342952">
       <screen x="0" y="0" width="1280" height="689" />
     </state>
@@ -199,10 +223,11 @@
       <screen x="0" y="0" width="1280" height="689" />
     </state>
     <state x="221" y="0" width="1073" height="724" maximized="true" key="dock-window-1/0.0.1280.689/1920.0.1366.738@1920.0.1366.738" timestamp="1606821523612" />
-    <state x="1992" y="0" width="883" height="861" maximized="true" key="dock-window-2" timestamp="1606932211066">
-      <screen x="1920" y="0" width="1920" height="1050" />
+    <state x="454" y="-19" width="883" height="861" maximized="true" key="dock-window-2" timestamp="1606940617581">
+      <screen x="0" y="0" width="1920" height="1050" />
     </state>
     <state x="1992" y="0" width="883" height="861" maximized="true" key="dock-window-2/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@0.0.1920.1050" timestamp="1606932211066" />
+    <state x="454" y="-19" width="883" height="861" maximized="true" key="dock-window-2/-1920.0.1280.700/1920.0.1920.1050/0.0.1920.1050@1920.0.1920.1050" timestamp="1606940617581" />
     <state x="623" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1606932870828">
       <screen x="0" y="0" width="1920" height="1050" />
     </state>
@@ -212,9 +237,10 @@
     <SUITE FILE_PATH="coverage/ML_P3$tf_toy_3.coverage" NAME="tf_toy_3 Coverage Results" MODIFIED="1606824779337" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/ML_P3$tf_toy_4_total_pred.coverage" NAME="tf_toy_4_total_pred Coverage Results" MODIFIED="1606842279499" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/ML_P3$tf_toy.coverage" NAME="tf_toy Coverage Results" MODIFIED="1606818483577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/ML_P3$tf_toy_6.coverage" NAME="tf_toy_6 Coverage Results" MODIFIED="1606938560180" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/ML_P3$tf_toy_6.coverage" NAME="tf_toy_6 Coverage Results" MODIFIED="1606941293880" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/ML_P3$tf_toy_4.coverage" NAME="tf_toy_4 Coverage Results" MODIFIED="1606827259790" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/ML_P3$tf_toy_5.coverage" NAME="tf_toy_5 Coverage Results" MODIFIED="1606835015252" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/ML_P3$TF_V2.coverage" NAME="TF_V2 Coverage Results" MODIFIED="1606953661863" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/ML_P3$tf_toy_2.coverage" NAME="tf_toy_2 Coverage Results" MODIFIED="1606820569102" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
