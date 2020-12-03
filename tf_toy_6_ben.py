@@ -101,7 +101,7 @@ class network():
 
     def train(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test):
 
-        for epoch in range(0, 50):
+        for epoch in range(0, 150):
             for _ in range(0, 100):
                 # Make a train step
                 self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test)
@@ -257,22 +257,22 @@ def max_cosine_similarity(sender, receiver, columns):
     sender_y = columns["y_{:0.0f}".format(sender)]
     receiver_x = columns["x_{:0.0f}".format(receiver)]
     receiver_y = columns["y_{:0.0f}".format(receiver)]
-    receiver_vector = [sender_x - receiver_x, sender_y - receiver_y]
+    receiver_vector = np.array([[sender_x - receiver_x, sender_y - receiver_y]])
     cos = -1
     for player in range(1,23):
         if player == sender or player == receiver or same_team_(player, sender) == 1:
             continue
         player_x = columns["x_{:0.0f}".format(player)]
         player_y = columns["y_{:0.0f}".format(player)]
-        opponent_vector = [sender_x - player_x, sender_y - player_y]
-        cos = max(cos, pw.cosine_similarity(receiver_vector, oppenent_vector))
+        opponent_vector = np.array([[sender_x - player_x, sender_y - player_y]])
+        cos = max(cos, pw.cosine_similarity(receiver_vector, opponent_vector))
     return cos
 
 
 
 def make_pair_of_players(X_, y_=None):
     n_ = X_.shape[0]
-    pair_feature_col = ["sender", "x_sender", "y_sender", "player_j", "x_j", "y_j", "same_team", "max_cs",
+    pair_feature_col = ["sender", "x_sender", "y_sender", "player_j", "x_j", "y_j", "same_team",
                         "is_pass_forward", "distance", "dist_opp_min", "dist_opp_min_sender", "dist_opp_avg", "dist_tm_min", "dist_tm_avg"]
     X_pairs = pd.DataFrame(data=np.zeros((n_ * 22, len(pair_feature_col))), columns=pair_feature_col)
     y_pairs = pd.DataFrame(data=np.zeros((n_ * 22, 1)), columns=["pass"])
@@ -303,10 +303,10 @@ def make_pair_of_players(X_, y_=None):
             dist_opp_avg = avg_dist_opp(sender, player_j, p_i_)
             dist_tm_avg = avg_dist_teammates(sender, player_j, p_i_)
             dist_tm_min = min_dist_teammates(sender, player_j, p_i_)
-            max_cs = max_cosine_similarity(sender, player_j, p_i_)
+            # max_cs = max_cosine_similarity(sender, player_j, p_i_)
             X_pairs.iloc[idx] = [sender/22, p_i_["x_{:0.0f}".format(sender)]/MAX_X_ABS_VAL, p_i_["y_{:0.0f}".format(sender)]/MAX_Y_ABS_VAL,
                                  player_j/22, p_i_["x_{:0.0f}".format(player_j)]/MAX_X_ABS_VAL, p_i_["y_{:0.0f}".format(player_j)]/MAX_Y_ABS_VAL,
-                                 same_team_(sender, player_j), max_cs, is_pass_forward(sender, player_j, p_i_), 0, dist_opp_min, dist_opp_min_sender, dist_opp_avg, dist_tm_min, dist_tm_avg]
+                                 same_team_(sender, player_j), is_pass_forward(sender, player_j, p_i_), 0, dist_opp_min, dist_opp_min_sender, dist_opp_avg, dist_tm_min, dist_tm_avg]
             """
             if same_team_(sender, player_j) == 1:
                 s_t_dist += distance((p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)]), (p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)]))
@@ -428,14 +428,14 @@ def first():
 
 if __name__ == '__main__':
 
-    # import_and_save_dataset()
+    import_and_save_dataset()
 
     # Read dataset:
     x = pd.read_csv('save_x_pairs.csv', sep=',', index_col=0)
     y = pd.read_csv('save_y_pairs.csv', sep=',', index_col=0)
 
     x["same_team"] = (x["same_team"] - 0.5)*2
-    x["max_cs"] = (x["max_cs"] + 1) / 2
+    # x["max_cs"] = (x["max_cs"] + 1) / 2
     x = x.drop(columns=["dist_tm_avg", "dist_tm_min", "dist_opp_min_sender"])
 
     # Got numpy versions
