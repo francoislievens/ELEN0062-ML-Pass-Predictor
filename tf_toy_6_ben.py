@@ -516,23 +516,3 @@ if __name__ == '__main__':
     for i in range(1, 23):
         plt.text(x_t[i-1], y_t[i-1],"{}".format(i))
     plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
