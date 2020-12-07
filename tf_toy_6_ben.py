@@ -45,9 +45,9 @@ class network():
         self.model = tf.keras.models.Sequential()
 
         # Add layers
-        self.model.add(tf.keras.layers.Dense(7, activation='tanh'))
-        self.model.add(tf.keras.layers.Dense(7, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(4, activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(12, activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(12, activation='relu'))
+        self.model.add(tf.keras.layers.Dense(8, activation='tanh'))
         #self.model.add(tf.keras.layers.Dropout(0.3))
         self.model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 
@@ -101,7 +101,7 @@ class network():
 
     def train(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test):
 
-        for epoch in range(0, 150):
+        for epoch in range(0, 100):
             for _ in range(0, 100):
                 # Make a train step
                 self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test)
@@ -188,6 +188,26 @@ def avg_dist_teammates(sender, receiver, columns):
         player_y = columns["y_{:0.0f}".format(player)]
         dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
         dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
+        dist += (dist_player_sender + dist_player_receiver)
+    return dist
+
+
+def avg_dist_sender_teammates(sender, receiver, columns):
+    if sender == receiver:
+        return 0
+    sender_x = columns["x_{:0.0f}".format(sender)]
+    sender_y = columns["y_{:0.0f}".format(sender)]
+    receiver_x = columns["x_{:0.0f}".format(receiver)]
+    receiver_y = columns["y_{:0.0f}".format(receiver)]
+    dist_sender_receiver = np.sqrt((sender_x - receiver_x)**2 + (sender_y - receiver_y)**2)
+    dist = 0
+    for player in range(1,23):
+        if player == sender or player == receiver or same_team_(player, sender) != 1:
+            continue
+        player_x = columns["x_{:0.0f}".format(player)]
+        player_y = columns["y_{:0.0f}".format(player)]
+        dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
+        dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
         dist += dist_player_sender
     return dist
 
@@ -207,8 +227,27 @@ def avg_dist_opp(sender, receiver, columns):
         player_y = columns["y_{:0.0f}".format(player)]
         dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
         dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
+        dist += (dist_player_receiver + dist_player_sender)
+    return dist
+
+def avg_dist_opp_receiver(sender, receiver, columns):
+    if sender == receiver:
+        return 0
+    sender_x = columns["x_{:0.0f}".format(sender)]
+    sender_y = columns["y_{:0.0f}".format(sender)]
+    receiver_x = columns["x_{:0.0f}".format(receiver)]
+    receiver_y = columns["y_{:0.0f}".format(receiver)]
+    dist_sender_receiver = np.sqrt((sender_x - receiver_x)**2 + (sender_y - receiver_y)**2)
+    dist = 0
+    for player in range(1,23):
+        if player == sender or player == receiver or same_team_(player, sender) == 1:
+            continue
+        player_x = columns["x_{:0.0f}".format(player)]
+        player_y = columns["y_{:0.0f}".format(player)]
+        dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
+        dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
         dist += dist_player_receiver
-    return dist/11
+    return dist
 
 
 def min_dist_opp(sender, receiver, columns):
@@ -225,7 +264,7 @@ def min_dist_opp(sender, receiver, columns):
             continue
         player_x = columns["x_{:0.0f}".format(player)]
         player_y = columns["y_{:0.0f}".format(player)]
-        dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
+        #dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
         dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
         dist = min(dist, dist_player_receiver)
     return dist
@@ -246,7 +285,7 @@ def min_dist_opp_sender(sender, receiver, columns):
         player_x = columns["x_{:0.0f}".format(player)]
         player_y = columns["y_{:0.0f}".format(player)]
         dist_player_sender = np.sqrt((sender_x - player_x)**2 + (sender_y - player_y)**2)
-        dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
+        # dist_player_receiver = np.sqrt((player_x - receiver_x)**2 + (player_y - receiver_y)**2)
         dist = min(dist, dist_player_sender)
     return dist
 
@@ -268,12 +307,27 @@ def max_cosine_similarity(sender, receiver, columns):
         cos = max(cos, pw.cosine_similarity(receiver_vector, opponent_vector))
     return cos
 
+def get_grid_position(x, y):
+    nb_col = 3
+    nb_row = 3
+    row = nb_row * (x + MAX_X_ABS_VAL) / (2 * MAX_X_ABS_VAL)
+    col = nb_col * (y + MAX_Y_ABS_VAL) / (2 * MAX_Y_ABS_VAL)
+    row = np.round(row-0.5) - 1
+    col = np.round(col-0.5) - 1
+    position = np.add((row + 1) * nb_col, col)
+    return position / (nb_col * nb_row)
 
+
+def regularize(col):
+    max_vect = np.max(col)
+    min_vect = np.min(col)
+    col = (col - min_vect) / (max_vect - min_vect)
+    return col
 
 def make_pair_of_players(X_, y_=None):
     n_ = X_.shape[0]
-    pair_feature_col = ["sender", "x_sender", "y_sender", "player_j", "x_j", "y_j", "same_team",
-                        "is_pass_forward", "distance", "dist_opp_min", "dist_opp_min_sender", "dist_opp_avg", "dist_tm_min", "dist_tm_avg"]
+    pair_feature_col = ["sender", "x_sender", "y_sender", "player_j", "x_j", "y_j", "same_team", "grid_pos_send", "grid_pos_rec", "max_cosine_sim",
+                        "is_pass_forward", "distance", "dist_opp_min", "dist_opp_min_sender", "dist_opp_avg", "dist_tm_min", "dist_tm_avg", "dist_tm_send_avg", "dist_opp_rec_avg"]
     X_pairs = pd.DataFrame(data=np.zeros((n_ * 22, len(pair_feature_col))), columns=pair_feature_col)
     y_pairs = pd.DataFrame(data=np.zeros((n_ * 22, 1)), columns=["pass"])
 
@@ -301,12 +355,19 @@ def make_pair_of_players(X_, y_=None):
             dist_opp_min = min_dist_opp(sender, player_j, p_i_)
             dist_opp_min_sender = min_dist_opp_sender(sender, player_j, p_i_)
             dist_opp_avg = avg_dist_opp(sender, player_j, p_i_)
+            dist_opp_rec_avg = avg_dist_opp_receiver(sender, player_j, p_i_)
             dist_tm_avg = avg_dist_teammates(sender, player_j, p_i_)
+            dist_tm_send_avg = avg_dist_sender_teammates(sender, player_j, p_i_)
             dist_tm_min = min_dist_teammates(sender, player_j, p_i_)
-            # max_cs = max_cosine_similarity(sender, player_j, p_i_)
+            grid_pos_sender = get_grid_position(p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)])
+            grid_pos_receiver = get_grid_position(p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)])
+            print("before cos_sim")
+            max_cs = max_cosine_similarity(sender, player_j, p_i_)
+            print("after cos_sim ({})".format(max_cs))
             X_pairs.iloc[idx] = [sender/22, p_i_["x_{:0.0f}".format(sender)]/MAX_X_ABS_VAL, p_i_["y_{:0.0f}".format(sender)]/MAX_Y_ABS_VAL,
                                  player_j/22, p_i_["x_{:0.0f}".format(player_j)]/MAX_X_ABS_VAL, p_i_["y_{:0.0f}".format(player_j)]/MAX_Y_ABS_VAL,
-                                 same_team_(sender, player_j), is_pass_forward(sender, player_j, p_i_), 0, dist_opp_min, dist_opp_min_sender, dist_opp_avg, dist_tm_min, dist_tm_avg]
+                                 same_team_(sender, player_j), grid_pos_sender, grid_pos_receiver, max_cs, is_pass_forward(sender, player_j, p_i_), 
+                                 0, dist_opp_min, dist_opp_min_sender, dist_opp_avg, dist_tm_min, dist_tm_avg, dist_tm_send_avg, dist_opp_rec_avg]
             """
             if same_team_(sender, player_j) == 1:
                 s_t_dist += distance((p_i_["x_{:0.0f}".format(sender)], p_i_["y_{:0.0f}".format(sender)]), (p_i_["x_{:0.0f}".format(player_j)], p_i_["y_{:0.0f}".format(player_j)]))
@@ -333,19 +394,12 @@ def make_pair_of_players(X_, y_=None):
     distance = compute_distance_(X_pairs)
     max_dist = np.max(distance)
     X_pairs["distance"] = distance / max_dist
-    dist_opp_min = X_pairs["dist_opp_min"]
-    max_dist_opp_min = np.max(X_pairs["dist_opp_min"])
-    X_pairs["dist_opp_min"] = dist_opp_min / max_dist_opp_min
-    dist_opp_avg = X_pairs["dist_opp_avg"]
-    max_dist_opp_avg = np.max(X_pairs["dist_opp_avg"])
-    X_pairs["dist_opp_avg"] = dist_opp_avg / max_dist_opp_avg
-    dist_tm_min = X_pairs["dist_tm_min"]
-    max_dist_tm_min = np.max(X_pairs["dist_tm_min"])
-    X_pairs["dist_tm_min"] = dist_tm_min / max_dist_tm_min
-    dist_tm_avg = X_pairs["dist_tm_avg"]
-    max_dist_tm_avg = np.max(X_pairs["dist_tm_avg"])
-    X_pairs["dist_tm_avg"] = dist_tm_avg / max_dist_tm_avg
-    X_pairs = X_pairs.drop(columns=["x_sender","y_sender", "x_j", "y_j"])
+    X_pairs["dist_opp_min"] = regularize(X_pairs["dist_opp_min"])
+    X_pairs["dist_opp_rec_avg"] = regularize(X_pairs["dist_opp_rec_avg"])
+    X_pairs["dist_tm_send_avg"] = regularize(X_pairs["dist_tm_send_avg"])
+    X_pairs["dist_opp_avg"] = regularize(X_pairs["dist_opp_avg"])
+    X_pairs["dist_tm_min"] = regularize(X_pairs["dist_tm_min"])
+    X_pairs["dist_tm_avg"] = regularize(X_pairs["dist_tm_avg"])
 
     return X_pairs, y_pairs
 
@@ -434,9 +488,11 @@ if __name__ == '__main__':
     x = pd.read_csv('save_x_pairs.csv', sep=',', index_col=0)
     y = pd.read_csv('save_y_pairs.csv', sep=',', index_col=0)
 
+
     x["same_team"] = (x["same_team"] - 0.5)*2
     # x["max_cs"] = (x["max_cs"] + 1) / 2
-    x = x.drop(columns=["dist_tm_avg", "dist_tm_min", "dist_opp_min_sender"])
+    x = x.drop(columns=["dist_tm_min", "grid_pos_send", "grid_pos_rec",
+        "dist_opp_min_sender", "sender", "player_j"])
 
     # Got numpy versions
     x_np = x.to_numpy()

@@ -183,6 +183,7 @@ if __name__ == '__main__':
 
     # Build the model
     model = DecisionTreeClassifier()
+    
 
     with measure_time('Training'):
         print('Training...')
