@@ -89,6 +89,10 @@ class Dataset():
         x_pairs = Features_computers.pass_distance(x_pairs)
         # Compute min, avg and std distance between same team and opposant, sender and reciever:
         x_pairs = Features_computers.dist_tool(x_pairs, dist_matrix)
+        # Add gravity centers:
+        x_pairs = Features_computers.gravity_center(x_pairs, x)
+        # Add cross product (is between two players)
+        x_pairs = Features_computers.is_between(x_pairs, x)
         # Normalize the dataset
         x_pairs = Features_computers.normalizer(x_pairs)
         # Drop pass index column
@@ -277,7 +281,6 @@ class Dataset():
         self.pairs_validation_x = pairs_valid_x.to_numpy()
         pairs_valid_y = pd.read_csv('personal_data/pairs_valid_y.csv', sep=',', index_col=0)
         self.pairs_validation_y = pairs_valid_y.to_numpy()
-
 
 
 
