@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from Dataset import Dataset
 from Neural import Neural
 import Features_computers
+import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
@@ -15,11 +16,11 @@ if __name__ == '__main__':
     # Create the dataset structure:
     dataset = Dataset()
     # Import original training set
-    #dataset.import_original_training(split_train=0.7, split_test=0.27, split_val=0.03)
+    dataset.import_original_training(split_train=0.7, split_test=0.27, split_val=0.03)
     # Compute the pair form of the dataset
-    #dataset.learning_set_builders()
+    dataset.learning_set_builders()
     # Save in a file to speed up experiments
-    #dataset.save_dataset()
+    dataset.save_dataset()
 
     # Restore dataset from a file:
     dataset.restore_dataset()
@@ -40,11 +41,26 @@ if __name__ == '__main__':
     result = np.zeros(len(pred))
     for i in range(0, len(pred)):
         if i < 40:
-            print('{} - {}'.format(pred[i], model.dataset.original_test_y[i]))
+            print('predicted: {} - truth: {}'.format(pred[i], model.dataset.original_test_y[i]))
         if pred[i] == model.dataset.original_test_y[i]:
             result[i] = 1
     print('final result: ')
     print(np.mean(result))
+
+    temp_x = pd.read_csv('personal_data/original_test_x.csv', sep=',', index_col="Id")
+    print(temp_x.head())
+    index = 2
+    x_t = np.zeros(22)
+    y_t = np.zeros(22)
+    for i in range(1,23):
+        x_t[i-1] = temp_x.iloc[index]['x_{:0.0f}'.format(i)]
+        y_t[i-1] = temp_x.iloc[index]['y_{:0.0f}'.format(i)]
+    sender = temp_x.iloc[index]["sender"]
+    print(temp_x.iloc[index]["time_start"])
+    plt.plot(x_t[:11], y_t[:11], 'rs', x_t[11:], y_t[11:], 'g^', x_t[sender-1], y_t[sender-1], 'bo')
+    for i in range(1, 23):
+        plt.text(x_t[i-1], y_t[i-1],"{}".format(i))
+    plt.show()
 
 
 

@@ -15,9 +15,10 @@ class Neural():
         self.model = tf.keras.models.Sequential()
 
         # Add layers
-        self.model.add(tf.keras.layers.Dense(20, activation='tanh'))
-        self.model.add(tf.keras.layers.Dense(20, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(10, activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(72, activation='tanh'))
+        self.model.add(tf.keras.layers.Dense(72, activation='relu'))
+        self.model.add(tf.keras.layers.Dense(48, activation='tanh'))
+        self.model.add(tf.keras.layers.Dropout(0.2))
         self.model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 
         # Loss computer:
@@ -78,7 +79,7 @@ class Neural():
                 s_weights_test[i] = 21
 
         s_weights_test = y_test * 21
-        for epoch in range(0, 10):
+        for epoch in range(0, 5):
             for _ in range(0, 100):
                 # Make a train step
                 self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test)

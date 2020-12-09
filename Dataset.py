@@ -83,19 +83,35 @@ class Dataset():
 
         # Add features:
 
+        # Get position sub_array:
+        x_tmp = x.to_numpy()
+        p_x_pos = np.zeros((x_tmp.shape[0], 22))
+        p_y_pos = np.zeros((x_tmp.shape[0], 22))
+        for i in range(0, 22):
+            p_x_pos[:, i] = x_tmp[:, 2 + i * 2]
+            p_y_pos[:, i] = x_tmp[:, 3 + i * 2]
+        p_x_pos = np.repeat(p_x_pos, repeats=22, axis=0)
+        p_y_pos = np.repeat(p_y_pos, repeats=22, axis=0)
+
         # Is pass forward:
         x_pairs = Features_computers.is_pass_forward(x_pairs)
         # Pass distance:
         x_pairs = Features_computers.pass_distance(x_pairs)
         # Compute min, avg and std distance between same team and opposant, sender and reciever:
         x_pairs = Features_computers.dist_tool(x_pairs, dist_matrix)
+        # x_pairs = Features_computers.sender_players_distances(x, x_pairs)
+        # x_pairs = Features_computers.get_dist_from_adv_goal(x_pairs)
+        # Max cosine similarity
+        x_pairs = Features_computers.max_cosine_similarity(x_pairs, p_x_pos, p_y_pos)
+        # Grid position
+        x_pairs = Features_computers.get_grid_feature(x_pairs)
         # Normalize the dataset
         x_pairs = Features_computers.normalizer(x_pairs)
         # Drop pass index column
         x_pairs.drop(columns=['pass_index'], inplace=True)
         # Delete all empty columns:
         headers = x_pairs.columns
-        to_drop = []
+        to_drop = ['x_sender', 'y_sender', 'x_j', 'y_j']
         for name in headers:
             if 'feature_' in name:
                 to_drop.append(name)
@@ -165,7 +181,7 @@ class Dataset():
             p_x_pos[:, i] = x_np[:, 2 + i * 2]
             p_y_pos[:, i] = x_np[:, 3 + i * 2]
         # Make a matrix to store each pass frame: n passes with 21 potential receiver and 50 features
-        n_features = 50
+        n_features = 100
         if y is not None:
             n_features += 1
         passes = np.zeros((n, 22, n_features))
