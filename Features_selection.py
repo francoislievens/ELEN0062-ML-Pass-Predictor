@@ -37,8 +37,7 @@ class Features_selection():
             rmv_results_idx = []
 
             # Try to remove each of already present features
-            #for i in range(0, self.del_feat.shape[0]):
-            for i in range(0, 2):
+            for i in range(0, self.del_feat.shape[0]):
 
                 print('* =========================================================================================== ')
                 print('* Features selector: ')
@@ -118,13 +117,13 @@ class Features_selection():
 
 
             # Delete the feature who have the worst impact on the accuracy:
-            worst = (1, 0)
+            best = (0, 0)
             for i in range(0, len(rmv_results_acc)):
-                if rmv_results_acc[i] <= worst[0]:
-                    worst = (rmv_results_acc[i], rmv_results_idx[i])
+                if rmv_results_acc[i] >= best[0]:
+                    best = (rmv_results_acc[i], rmv_results_idx[i])
 
             # Close the feature:
-            self.del_feat[worst[1]] = True
+            self.del_feat[best[1]] = True
             self.nb_active_feat -= 1
 
 
