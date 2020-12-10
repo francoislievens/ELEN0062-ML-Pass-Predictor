@@ -37,7 +37,8 @@ class Features_selection():
             rmv_results_idx = []
 
             # Try to remove each of already present features
-            for i in range(0, self.del_feat.shape[0]):
+            #for i in range(0, self.del_feat.shape[0]):
+            for i in range(0, 2):
 
                 print('* =========================================================================================== ')
                 print('* Features selector: ')
@@ -69,19 +70,12 @@ class Features_selection():
                         if j != i and not self.del_feat[j]:
                             LS[:, idx] = self.dataset.pairs_train_x[:, j]
                             TS[:, idx] = self.dataset.pairs_test_x[:, j]
+                            idx += 1
 
-                    columns = self.dataset.pairs_x_header
-                    col = []
-                    for k in range(0, self.dataset.pairs_test_x.shape[1]):
-                        if k != i:
-                            col.append(columns[k])
-                    test_df = pd.DataFrame(TS, columns=col)
-                    print(test_df.iloc[6])
-                    test_df = pd.DataFrame(LS, columns=col)
-                    print(test_df.iloc[6])
                     train_curve, test_curve = self.model.train_features_selections(LS, self.dataset.pairs_train_y,
                                                                                    TS, self.dataset.pairs_test_y,
                                                                                    self.dataset.original_test_y)
+
                     # Store the best accuracy:
                     best_accu = np.max(test_curve)
                     rmv_results_acc.append(best_accu)
@@ -103,7 +97,7 @@ class Features_selection():
                     train_str_arr.append(str(np.min(train_curve)))
                     # Write accuracy evolution
                     for epoch in range(0, 200):
-                        if epoch < test_curve.shape[0]:
+                        if epoch < len(test_curve):
                             test_str_arr.append(str(test_curve[epoch]))
                             train_str_arr.append(str(train_curve))
                         else:
@@ -124,14 +118,14 @@ class Features_selection():
 
 
             # Delete the feature who have the worst impact on the accuracy:
-            best = (0, 0)
+            worst = (1, 0)
             for i in range(0, len(rmv_results_acc)):
-                if rmv_results_acc[i] >= best[0]:
-                    best = (rmv_results_acc[i], rmv_results_idx[i])
+                if rmv_results_acc[i] <= worst[0]:
+                    worst = (rmv_results_acc[i], rmv_results_idx[i])
 
             # Close the feature:
-                self.del_feat[best[1]] = True
-                self.nb_active_feat -= 1
+            self.del_feat[worst[1]] = True
+            self.nb_active_feat -= 1
 
 
 if __name__ == '__main__':

@@ -58,7 +58,7 @@ class Neural():
         # Training_set to use
         self.dataset = None
 
-    #@tf.function
+    @tf.function
     def train_step(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test, original_y):
         """
         Training function
@@ -148,8 +148,8 @@ class Neural():
             test_loss_tmp = self.test_loss_accu.result()
             train_loss_tmp = self.train_loss_accu.result()
             # Store losses
-            train_curve.append(train_loss_tmp)
-            test_curve.append(test_loss_tmp)
+            train_curve.append(train_loss_tmp.numpy())
+            test_curve.append(test_loss_tmp.numpy())
 
             print('Epoch: {}'.format(epoch))
             # Print the loss: return the mean of all error in the accumulator
@@ -159,7 +159,7 @@ class Neural():
             self.train_loss_accu.reset_states()
             self.test_loss_accu.reset_states()
 
-            if epoch > 15:
+            if epoch >= 20:
                 print('=======BREAK=======')
                 return train_curve, test_curve
 
