@@ -15,17 +15,17 @@ if __name__ == '__main__':
     # Create the dataset structure:
     dataset = Dataset()
     # Import original training set
-    dataset.import_original_training(split_train=0.7, split_test=0.27, split_val=0.03)
+    #dataset.import_original_training(split_train=0.8, split_test=0.17, split_val=0.03)
     # Compute the pair form of the dataset
-    dataset.learning_set_builders()
+    #dataset.learning_set_builders()
     # Save in a file to speed up experiments
-    dataset.save_dataset()
+    #dataset.save_dataset()
 
     # Restore dataset from a file:
     dataset.restore_dataset()
 
     test_df = pd.DataFrame(dataset.pairs_test_x, columns=dataset.pairs_x_header)
-    print(test_df.iloc[22])
+    print(test_df.iloc[68])
     # give the dataset to the model:
     model.set_dataset(dataset)
     # Train the model

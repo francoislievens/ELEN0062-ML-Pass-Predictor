@@ -42,11 +42,14 @@ class Dataset():
         self.pairs_x_header = None
         self.pairs_y_header = None
 
-    def import_original_training(self, split_train=0.7, split_test=0.2, split_val=0.1):
+    def import_original_training(self, split_train=0.9, split_test=0.29, split_val=0.01):
 
         # Read the csv to pandas
         x_df = pd.read_csv('Original_data/input_training_set.csv', sep=',')
         y_df = pd.read_csv('Original_data/output_training_set.csv', sep=',')
+
+        # Replace positions axis
+        x_df = self.positions_convertor(x_df)
 
         # Store headers
         self.original_x_header = x_df.columns
@@ -57,8 +60,8 @@ class Dataset():
         y = y_df.to_numpy()
 
         # Split the set
-        x_train, x_t, y_train, y_t = train_test_split(x, y, test_size=(1-split_train), shuffle=False)
-        x_test, x_valid, y_test, y_valid = train_test_split(x_t, y_t, test_size=(split_val / (split_test + split_val)), shuffle=False)
+        x_train, x_t, y_train, y_t = train_test_split(x, y, test_size=(1-split_train), shuffle=True)
+        x_test, x_valid, y_test, y_valid = train_test_split(x_t, y_t, test_size=(split_val / (split_test + split_val)), shuffle=True)
 
         # Store
         self.original_train_x = x_train
@@ -81,6 +84,16 @@ class Dataset():
         else:
             x_pairs = self.make_players_pairs(x)
 
+        # Get position sub_array:
+        x_tmp = x.to_numpy()
+        p_x_pos = np.zeros((x_tmp.shape[0], 22))
+        p_y_pos = np.zeros((x_tmp.shape[0], 22))
+        for i in range(0, 22):
+            p_x_pos[:, i] = x_tmp[:, 2 + i * 2]
+            p_y_pos[:, i] = x_tmp[:, 3 + i * 2]
+        p_x_pos = np.repeat(p_x_pos, repeats=22, axis=0)
+        p_y_pos = np.repeat(p_y_pos, repeats=22, axis=0)
+
         # Add features:
 
         # Is pass forward:
@@ -93,6 +106,8 @@ class Dataset():
         x_pairs = Features_computers.gravity_center(x_pairs, x)
         # Add cross product (is between two players)
         x_pairs = Features_computers.is_between(x_pairs, x)
+        # Add max cos similarity:
+        #x_pairs = Features_computers.max_cosine_similarity(x_pairs, p_x_pos, p_y_pos)
         # Normalize the dataset
         x_pairs = Features_computers.normalizer(x_pairs)
         # Drop pass index column
@@ -103,11 +118,11 @@ class Dataset():
         for name in headers:
             if 'feature_' in name:
                 to_drop.append(name)
+            # Drop positions
+            #if 'x_sender' in name or 'y_sender' in name or 'x_j' in name or 'y_j' in name:
+            #    to_drop.append(name)
+
         x_pairs.drop(columns=to_drop, inplace=True)
-
-
-
-
 
         if y is not None:
             return x_pairs, y_pairs
@@ -173,12 +188,13 @@ class Dataset():
         if y is not None:
             n_features += 1
         passes = np.zeros((n, 22, n_features))
-        # Copy sender
+        # Copy sender and time start
         for i in range(0, n):
             sender = x['sender'].iloc[i]
             passes[i, :, 0:3] += [sender, x['x_{:0.0f}'.format(sender)].iloc[i], x['y_{:0.0f}'.format(sender)].iloc[i]]
             # The index of the pass
             passes[i, :, 7] = i
+            passes[i, :, 8] = x['time_start'].iloc[i]
         # Copy receivers
         rc = np.arange(1, 23, dtype=float)
         passes[:, :, 3] = rc
@@ -211,8 +227,8 @@ class Dataset():
         # X output
         x_opt = passes[:, :-1]
         # Get dataframe headers:
-        x_header = ['sender', 'x_sender', 'y_sender', 'player_j', 'x_j', 'y_j', 'same_team', 'pass_index']
-        for i in range(8, n_features - 1):
+        x_header = ['sender', 'x_sender', 'y_sender', 'player_j', 'x_j', 'y_j', 'same_team', 'pass_index', 'time_start']
+        for i in range(9, n_features - 1):
             x_header.append('feature_{}'.format(i))
         # In dataframe
         x_opt = pd.DataFrame(x_opt, columns=x_header)
@@ -281,6 +297,28 @@ class Dataset():
         self.pairs_validation_x = pairs_valid_x.to_numpy()
         pairs_valid_y = pd.read_csv('personal_data/pairs_valid_y.csv', sep=',', index_col=0)
         self.pairs_validation_y = pairs_valid_y.to_numpy()
+
+    def positions_convertor(self, dataframe):
+        """
+        Replace axis of the dataset
+        :param dataset: original datafram
+        :return: rebuilded datafram
+        """
+        # Get the numpy version:
+        dataset = dataframe.to_numpy()
+        # Compute x positions
+        idx = 2
+        while idx < 46:
+            dataset[:, idx] = 5260 + dataset[:, idx]
+            idx += 2
+        # the same for y:
+        idx = 3
+        while idx < 46:
+            dataset[:, idx] = 3400 + dataset[:, idx]
+            idx += 2
+
+        new_df = pd.DataFrame(dataset, columns=dataframe.columns)
+        return new_df
 
 
 

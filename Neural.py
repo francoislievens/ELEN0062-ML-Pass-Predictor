@@ -10,15 +10,38 @@ import Dataset
 
 class Neural():
 
-    def __init__(self):
+    def __init__(self, options=None):
+
+        # ================================================ #
+        #               Default parameters:                #
+        # ================================================ #
+
+        # Number of hidden layers:
+        self.nb_HL = 6
+        # Number of features in the input data
+        self.nb_feat = 24
+        # Size of hidden layers
+        self.HL_size = 24
+        # Activation function type
+        self.HL_activ = 'tanh'
+
+        if options != None:
+            self.nb_HL = options['nb_HL']
+            self.nb_feat = options['nb_feat']
+            self.HL_size = options['HL_size']
+            self.HL_activ = options['HL_activ']
+
         # Create the model:
         self.model = tf.keras.models.Sequential()
-
+        # Use float 64
+        tf.keras.backend.set_floatx('float64')
         # Add layers
-        self.model.add(tf.keras.layers.Dense(25, activation='tanh'))
-        self.model.add(tf.keras.layers.Dense(50, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(25, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(10, activation='tanh'))
+
+        self.model.add(tf.keras.layers.Dense(self.nb_feat, activation=self.HL_activ))
+        self.hidden_layers = []
+        for i in range(0, self.nb_HL):
+            self.hidden_layers.append(self.model.add(tf.keras.layers.Dense(self.HL_size, activation=self.HL_activ)))
+
         self.model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 
         # Loss computer:
@@ -35,8 +58,8 @@ class Neural():
         # Training_set to use
         self.dataset = None
 
-    @tf.function
-    def train_step(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test):
+    #@tf.function
+    def train_step(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test, original_y):
         """
         Training function
         """
@@ -57,8 +80,13 @@ class Neural():
         if x_test is not None:
             # Compute test error:
             test_predictions = self.model(x_test)
-            test_loss = self.train_loss_object(y_test, test_predictions, sample_weight=s_weights_test)
-            self.test_loss_accu(test_loss)
+            test_predictions = tf.reshape(test_predictions, shape=[-1, 22])
+            final_pred = tf.math.argmax(test_predictions, axis=1)
+            target = tf.cast(original_y, dtype=tf.int64)
+            target = tf.reshape(target, [-1])
+            counter = tf.math.equal(final_pred, target)
+            test_loss = tf.reduce_sum(tf.cast(counter, tf.float32))
+            self.test_loss_accu(test_loss / tf.size(counter, out_type=tf.float32))
 
 
     def train(self):
@@ -67,6 +95,8 @@ class Neural():
         y_train = self.dataset.pairs_train_y
         x_test = self.dataset.pairs_test_x
         y_test = self.dataset.pairs_test_y
+        original_y = self.dataset.original_test_y
+        original_y -= 1
 
         # Build sample weights:
         s_weights_train = np.ones(x_train.shape[0])
@@ -79,10 +109,10 @@ class Neural():
                 s_weights_test[i] = 21
 
         s_weights_test = y_test * 21
-        for epoch in range(0, 4):
-            for _ in range(0, 100):
+        for epoch in range(0, 150):
+            for _ in range(0, 50):
                 # Make a train step
-                self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test)
+                self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test, original_y)
 
             print('Epoch: {}'.format(epoch))
             # Print the loss: return the mean of all error in the accumulator
@@ -91,6 +121,49 @@ class Neural():
             # Reset the accumulator
             self.train_loss_accu.reset_states()
             self.test_loss_accu.reset_states()
+
+    def train_features_selections(self, x_train, y_train, x_test, y_test, original_y):
+
+        original_y -= 1
+
+        # Build sample weights:
+        s_weights_train = np.ones(x_train.shape[0])
+        s_weights_test = np.ones(x_test.shape[0])
+        for i in range(0, x_train.shape[0]):
+            if y_train[i] == 1:
+                s_weights_train[i] = 21
+        for i in range(0, x_test.shape[0]):
+            if y_test[i] == 1:
+                s_weights_test[i] = 21
+
+        train_curve = []
+        test_curve = []
+
+        s_weights_test = y_test * 21
+        for epoch in range(0, 150):
+            for _ in range(0, 50):
+                # Make a train step
+                self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test, original_y)
+            # Get losses
+            test_loss_tmp = self.test_loss_accu.result()
+            train_loss_tmp = self.train_loss_accu.result()
+            # Store losses
+            train_curve.append(train_loss_tmp)
+            test_curve.append(test_loss_tmp)
+
+            print('Epoch: {}'.format(epoch))
+            # Print the loss: return the mean of all error in the accumulator
+            print('Test Loss: %s' % test_loss_tmp)
+            print('Train Loss: %s' % train_loss_tmp)
+            # Reset the accumulator
+            self.train_loss_accu.reset_states()
+            self.test_loss_accu.reset_states()
+
+            if epoch > 15:
+                print('=======BREAK=======')
+                return train_curve, test_curve
+
+
 
     def predict_pass(self, df_x):
 
@@ -105,13 +178,28 @@ class Neural():
         # Make predictions:
         pred = self.model(x_pairs.to_numpy())
         # Reshape:
-        pred = np.reshape(pred, (-1, 22))
+        pred = tf.reshape(pred, [-1, 22])
         # Store final numeric prediction:
-        final_pred = np.zeros(pred.shape[0])
-        for i in range(0, pred.shape[0]):
-            final_pred[i] = np.argmax(pred[i, :]) + 1
+        final_pred = tf.math.argmax(pred, axis=1)
 
         return final_pred
+
+    def true_loss(self, pred, target):
+
+        pred = np.reshape(pred, (-1, 22))
+        final_pred = np.argmax(pred, axis=1)
+        return np.sum(final_pred == target) / len(final_pred)
+
+    def error_pass(self, predict, data):
+        """
+        Compute the % of good pass predictions
+        :param predict: An array of integers who contains recievers predictions
+        :param data: Real recievers
+        :return: the probability to make good predictions
+        """
+
+        return np.sum(predict == data) / len(predict)
+
 
     def set_dataset(self, dataset):
 

@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
+from functools import reduce
+import sklearn.metrics.pairwise as pw
 
-MAX_X_ABS_VAL = 5250
-MAX_Y_ABS_VAL = 3400
+MAX_X_ABS_VAL = 10500
+MAX_Y_ABS_VAL = 6800
 
 def is_pass_forward(pairs):
 
@@ -157,14 +159,7 @@ def normalizer(x):
 
     # Get numpy version
     x_np = x.to_numpy()
-    x_np[:, 0] /= 22       # Sender
-    x_np[:, 1] /= MAX_X_ABS_VAL    # Sender abs
-    x_np[:, 2] /= MAX_Y_ABS_VAL    # Sender ordo
-    x_np[:, 3] /= 22
-    x_np[:, 4] /= MAX_X_ABS_VAL
-    x_np[:, 5] /= MAX_Y_ABS_VAL
-    for i in range(9, 16):
-        x_np[:, i] /= MAX_X_ABS_VAL
+
     col = x.columns
     for i in range(0, len(col)):
         if col[i] == 'sender_team_gravity_x' or col[i] == 'sender_opp_gravity_x':
@@ -173,7 +168,26 @@ def normalizer(x):
             x_np[:, i] /= MAX_Y_ABS_VAL
         if col[i] == 'cross_product_team' or col[i] == 'cross_product_opp' or col[i] == 'mean_cross_product_team' or col[i] == 'mean_cross_product_opp':
             x_np[:, i] /= (MAX_X_ABS_VAL * MAX_Y_ABS_VAL)
-
+        if col[i] == 'time_start':
+            x_np[:, i] /= 2700000
+        if col[i] == 'std_team_dist':
+            x_np[:, i] /= (MAX_X_ABS_VAL/2)
+        if col[i] == 'sender':
+            x_np[:, i] /= 22
+        if col[i] == 'x_sender':
+            x_np[:, i] /= MAX_X_ABS_VAL
+        if col[i] == 'y_sender':
+            x_np[:, i] /= MAX_Y_ABS_VAL
+        if col[i] == 'x_sender':
+            x_np[:, i] /= MAX_X_ABS_VAL
+        if col[i] == 'player_j':
+            x_np[:, i] /= 22
+        if col[i] == 'x_j':
+            x_np[:, i] /= MAX_X_ABS_VAL
+        if col[i] == 'y_j':
+            x_np[:, i] /= MAX_Y_ABS_VAL
+        if col[i] == 'distance' or col[i] == 'min_opp_dist' or col[i] == 'mean_opp_dist' or col[i] == 'std_opp_dist' or col[i] == 'min_team_dist'or col[i] == 'mean_team_dist' or col[i] == 'std_team_dist':
+            x_np[:, i] /= MAX_X_ABS_VAL
 
     return pd.DataFrame(x_np, columns=x.columns)
 
@@ -279,10 +293,10 @@ def is_between(pairs, orig_data):
         data_opp.append(sub_data_opp)
 
     for i in range(0, pairs.shape[0]):
-        np_pairs[i, idx] = np.min(data_team[i])
-        np_pairs[i, idx+1] = np.min(data_opp[i])
-        np_pairs[i, idx+2] = np.mean(data_team[i])
-        np_pairs[i, idx+3] = np.mean(data_opp[i])
+        np_pairs[i, idx] = np.fabs(np.min(data_team[i]))
+        np_pairs[i, idx+1] = np.fabs(np.min(data_opp[i]))
+        np_pairs[i, idx+2] = np.fabs(np.mean(data_team[i]))
+        np_pairs[i, idx+3] = np.fabs(np.mean(data_opp[i]))
 
     # Update headers
     new_col = []
@@ -294,3 +308,139 @@ def is_between(pairs, orig_data):
     new_col[idx+3] = 'mean_cross_product_opp'
 
     return pd.DataFrame(np_pairs, columns=new_col)
+
+def get_row_index(row):
+    return row[int(row[-1])]
+
+def set_row_index(row, val):
+    row[int(row[-1])] = val
+
+
+def my_cos_sim(arr):
+    x, y = arr[:2], arr[2:]
+    return pw.cosine_similarity(np.array([x]), np.array([y]))
+
+def max_cosine_similarity_b(pairs, orig_data):
+
+    # Get the number of entries:
+    x_np = orig_data.to_numpy()
+    n = x_np.shape[0]
+    # Get position sub_array:
+    x = np.zeros((n, 22))
+    y = np.zeros((n, 22))
+    for i in range(0, 22):
+        x[:, i] = x_np[:, 2 + i * 2]
+        y[:, i] = x_np[:, 3 + i * 2]
+    # check the first empty feature:
+    col = pairs.columns
+    idx = 0
+    for i in range(0, len(col)):
+        if 'feature_' in col[i]:
+            idx = i
+            break
+    # Make a copy array of headers
+    headers = pairs.columns
+    headers_array = []
+    for i in range(0, len(headers)):
+        headers_array.append(i)
+
+    np_pairs = pairs.to_numpy()
+    sender = np_pairs[:, 0].astype(int)
+    print(sender)
+    rec = np_pairs[:, 3].astype(int)
+    sender_x = np.apply_along_axis( get_row_index, 1, np.hstack((x, sender.reshape((sender.shape[0], 1))-1)))
+    sender_y = np.apply_along_axis( get_row_index, 1, np.hstack((y, sender.reshape((sender.shape[0], 1))-1)))
+    rec_x = np.apply_along_axis( get_row_index, 1, np.hstack((x, rec.reshape((rec.shape[0], 1))-1)))
+    rec_y = np.apply_along_axis( get_row_index, 1, np.hstack((y, rec.reshape((rec.shape[0], 1))-1)))
+    receiver_vector = np.zeros((sender_x.shape[0], 2))
+    receiver_vector[:, 0] = sender_x - rec_x
+    receiver_vector[:, 1] = sender_y - rec_y
+    cos = np.zeros(np_pairs.shape[0]) - 1
+    for player in range(0,22):
+        # trouver tous les indices où cos_sim doit être à -1
+        player_x = x[:, player]
+        player_y = y[:, player]
+        opponent_vector = np.zeros((sender_x.shape[0], 2))
+        opponent_vector[:, 0] = sender_x - player_x
+        opponent_vector[:, 1] = sender_y - player_y
+        # condition = (sender == player or sender == receiver or (sender > 12 and player > 12) or (sender <= 11 and player <= 11))
+        invalid_sender = np.where(sender-1 == player)
+        invalid_rec = np.where(rec-1 == player)
+        if player > 12:
+            same_team = np.where(sender > 12)
+        else:
+            same_team = np.where(sender <= 11)
+        print('time 1')
+        not_valid = reduce(np.union1d, (invalid_sender, invalid_rec, same_team))
+        print('time 2')
+        cos_sim = np.apply_along_axis(my_cos_sim, 1, np.hstack((receiver_vector, opponent_vector)))
+        print('time 3')
+        # remplacer par -1/0 pour chacun de ces indices dans cos_sim
+        np.put(cos_sim, not_valid, np.zeros(not_valid.shape[0])-1)
+        print(cos_sim)
+        pairs["max_cos_sim_{}".format(player+1)] = np.concatenate(cos_sim).ravel()
+        np_pairs[:, idx + player] = np.concatenate(cos_sim).ravel()
+        headers_array[idx + player] = "max_cos_sim_{}".format(player+1)
+
+    return pd.DataFrame(np_pairs, columns=headers_array)
+
+def max_cosine_similarity(pairs, x, y):
+
+    # check the first empty feature:
+    col = pairs.columns
+    for i in range(0, len(col)):
+        print(col[i])
+    idx = 0
+    for i in range(0, len(col)):
+        if 'feature_' in col[i]:
+            idx = i
+            break
+    # Make a copy array of headers
+    headers = pairs.columns
+    headers_array = []
+    for i in range(0, len(headers)):
+        headers_array.append(headers[i])
+    # Add new columns
+    for i in range(0, 22):
+        headers_array[i+idx] = "max_cos_sim_{}".format(i+1)
+    # Update headers:
+    pairs = pd.DataFrame(pairs.to_numpy(), columns=headers_array)
+    np_pairs = pairs.to_numpy()
+    sender = np_pairs[:, 0].astype(int)
+    print(sender)
+    rec = np_pairs[:, 3].astype(int)
+    sender_x = np.apply_along_axis( get_row_index, 1, np.hstack((x, sender.reshape((sender.shape[0], 1))-1)))
+    sender_y = np.apply_along_axis( get_row_index, 1, np.hstack((y, sender.reshape((sender.shape[0], 1))-1)))
+    rec_x = np.apply_along_axis( get_row_index, 1, np.hstack((x, rec.reshape((rec.shape[0], 1))-1)))
+    rec_y = np.apply_along_axis( get_row_index, 1, np.hstack((y, rec.reshape((rec.shape[0], 1))-1)))
+    receiver_vector = np.zeros((sender_x.shape[0], 2))
+    receiver_vector[:, 0] = sender_x - rec_x
+    receiver_vector[:, 1] = sender_y - rec_y
+    cos = np.zeros(np_pairs.shape[0]) - 1
+
+    for player in range(0,22):
+        # trouver tous les indices où cos_sim doit être à -1
+        player_x = x[:, player]
+        player_y = y[:, player]
+        opponent_vector = np.zeros((sender_x.shape[0], 2))
+        opponent_vector[:, 0] = sender_x - player_x
+        opponent_vector[:, 1] = sender_y - player_y
+        # condition = (sender == player or sender == receiver or (sender > 12 and player > 12) or (sender <= 11 and player <= 11))
+        invalid_sender = np.where(sender-1 == player)
+        invalid_rec = np.where(rec-1 == player)
+        if player > 12:
+            same_team = np.where(sender > 12)
+        else:
+            same_team = np.where(sender <= 11)
+        print('time 1')
+        not_valid = reduce(np.union1d, (invalid_sender, invalid_rec, same_team))
+        print('time 2')
+        cos_sim = np.apply_along_axis(my_cos_sim, 1, np.hstack((receiver_vector, opponent_vector)))
+        print('time 3')
+        # remplacer par -1/0 pour chacun de ces indices dans cos_sim
+        np.put(cos_sim, not_valid, np.zeros(not_valid.shape[0])-1)
+        print(cos_sim)
+        pairs["max_cos_sim_{}".format(player+1)] = np.concatenate(cos_sim).ravel()
+        print('iter: {}'.format(player))
+
+    return pairs

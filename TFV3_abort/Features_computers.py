@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 #import cupy as cp
 
-MAX_X_ABS_VAL = 5250
-MAX_Y_ABS_VAL = 3400
+#MAX_X_ABS_VAL = 5250
+MAX_X_ABS_VAL = 10500
+#MAX_Y_ABS_VAL = 3400
+MAX_Y_ABS_VAL = 6800
 
 def is_pass_forward(pairs):
 
