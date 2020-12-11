@@ -7,33 +7,26 @@ MAX_X_ABS_VAL = 5250
 MAX_Y_ABS_VAL = 3400
 
 def get_diagonale():
-    return np.sqrt(MAX_X_ABS_VAL**2 + MAX_Y_ABS_VAL**2)
+    return np.sqrt((2*MAX_X_ABS_VAL)**2 + (2*MAX_Y_ABS_VAL)**2)
 
-def is_pass_forward(pairs):
-
-    # check the first empty feature:
-    col = pairs.columns
-    idx = 0
-    for i in range(0, len(col)):
-        if 'feature_' in col[i]:
-            idx = i
-            break
-    # Get numpy version
+def is_pass_forward(pairs, x):
     np_pairs = pairs.to_numpy()
-    # Get the mask of forward pass
-    mask = (np_pairs[:, 1] <= np_pairs[:, 4])
-    mask = np.asarray(mask, dtype=float)
-    np_pairs[:, idx] = mask
-
-    # Update header
-    new_col = []
-    for i in range(0, len(col)):
-        if i == idx:
-            new_col.append('is_pass_forward')
+    pass_forward = np.zeros(np_pairs.shape[0])
+    left_most_x = MAX_X_ABS_VAL
+    left_most_player = 0
+    keepers = np.argmin(x, 1) + 1
+    for n in range(np_pairs.shape[0]):
+        sender = np_pairs[n, 0]
+        sender_x = np_pairs[n, 1]
+        rec = np_pairs[n, 3]
+        rec_x = np_pairs[n, 4]
+        left_keeper = keepers[n]
+        if (left_keeper < 12 and sender < 12) or (left_keeper >= 12 and sender >= 12):
+            pass_forward[n] = rec_x - sender_x
         else:
-            new_col.append(col[i])
-
-    return pd.DataFrame(np_pairs, columns=new_col)
+            pass_forward[n] = sender_x - rec_x 
+    pairs['is_pass_forward'] = (pass_forward + 2*MAX_X_ABS_VAL) / (4*MAX_X_ABS_VAL)
+    return pairs
 
 def get_row_index(row):
     return row[int(row[-1])]
@@ -80,31 +73,30 @@ def max_cosine_similarity(pairs, x, y):
         print('time 3')
         # remplacer par -1/0 pour chacun de ces indices dans cos_sim 
         np.put(cos_sim, not_valid, np.zeros(not_valid.shape[0])-1)
-        print(cos_sim)
-        pairs["max_cos_sim_{}".format(player+1)] = np.concatenate(cos_sim).ravel()
+        cos = np.maximum(cos, np.concatenate(cos_sim).ravel())
+    pairs["max_cos_sim"] = (cos + 1) / 2
     return pairs
-"""
-def get_dist_from_adv_goal(pairs):
+
+def get_dist_from_adv_goal(pairs, x):
     np_pairs = pairs.to_numpy()
-    left_most = np.ones(np_pairs.shape[0]) * MAX_X_ABS_VAL
-    left_most_player = np.zeros(np_pairs.shape[0])
-    for player in range(0, 22):
-        player_x = np_pairs[:, 4]
-        left_most = np.minimum(left_most, player_x)
-        left_most_player = player
-    same_team = 0
-    left_most_player += 1
-    receivers = np_pairs[:, 3]
-    team1 = np.zeros(np_pairs.shape[0]) - 5250
-    team2 = np.zeros(np_pairs.shape[0]) + 5250
-    goal = np.where((receivers < 12 and left_most_player < 12) or (receivers >= 12 and left_most_player >= 12), team2, team1)
-    # Compute distance
-    distances = np.sqrt(np.power(goal - np_pairs[:, 4], 2) +
-                               np.power(np_pairs[:, 5], 2)) / get_diagonale()
-    print(distances)
-    pairs['distance_goal'] = distances
+    left_most_x = MAX_X_ABS_VAL
+    left_most_player = 0
+    keepers = np.argmin(x, 1) + 1
+    dist = np.zeros(np_pairs.shape[0])
+    goal_x = np.zeros(np_pairs.shape[0])
+    for n in range(np_pairs.shape[0]):
+        left_keeper = keepers[n]
+        sender = np_pairs[n, 0]
+        if (sender < 12 and left_keeper < 12) or (sender >= 12 and left_keeper >= 12):
+            goal_x[n] = MAX_X_ABS_VAL
+        else:
+            goal_x[n] = -MAX_X_ABS_VAL
+    dist = np.sqrt(np.power(goal_x - np_pairs[:, 1], 2) +
+                      np.power(np_pairs[:, 2], 2)) / get_diagonale()
+    print(dist)
+    pairs['distance_goal'] = dist / get_diagonale()
     return pairs
-"""
+
 
 def get_grid_feature(pairs):
     np_pairs = pairs.to_numpy()
@@ -115,11 +107,12 @@ def get_grid_feature(pairs):
     sender_position = get_grid_position(x_sender, y_sender)
     rec_position = get_grid_position(x_rec, y_rec)
     pairs["rec_grid_pos"] = rec_position
+    pairs["sender_grid_pos"] = sender_position
     return pairs
 
 def get_grid_position(x, y):
-    nb_col = 3
-    nb_row = 3
+    nb_col = 4
+    nb_row = 4
     row = nb_row * (x + MAX_X_ABS_VAL) / (2 * MAX_X_ABS_VAL)
     col = nb_col * (y + MAX_Y_ABS_VAL) / (2 * MAX_Y_ABS_VAL)
     row = np.round(row-0.5) - 1
@@ -327,13 +320,12 @@ def normalizer(x):
     # Get numpy version
     x_np = x.to_numpy()
     x_np[:, 0] /= 22       # Sender
-    x_np[:, 1] /= MAX_X_ABS_VAL    # Sender abs
-    x_np[:, 2] /= MAX_Y_ABS_VAL    # Sender ordo
+    x_np[:, 1] = (x_np[:, 1] + MAX_X_ABS_VAL) / (2*MAX_X_ABS_VAL)    # Sender abs
+    x_np[:, 2] = (x_np[:, 2] + MAX_Y_ABS_VAL) / (2*MAX_Y_ABS_VAL)    # Sender ordo
     x_np[:, 3] /= 22 # receiver
-    x_np[:, 4] /= MAX_X_ABS_VAL #receiver abs
-    x_np[:, 5] /= MAX_Y_ABS_VAL # receiver ordo
-    x_np[:, 6] = (x_np[:, 6] - 0.5)*2 # same_team
-    for i in range(9, 28):
+    x_np[:, 4] = (x_np[:, 4] + MAX_X_ABS_VAL) / (2*MAX_X_ABS_VAL)    # Sender abs
+    x_np[:, 5] = (x_np[:, 5] + MAX_Y_ABS_VAL) / (2*MAX_Y_ABS_VAL)    # Sender ordo
+    for i in range(8, 27):
         x_np[:, i] /= get_diagonale()
     return pd.DataFrame(x_np, columns=x.columns)
 

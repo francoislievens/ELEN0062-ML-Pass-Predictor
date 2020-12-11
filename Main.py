@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     temp_x = pd.read_csv('personal_data/original_test_x.csv', sep=',', index_col="Id")
     print(temp_x.head())
-    index = 2
+    index = 6
     x_t = np.zeros(22)
     y_t = np.zeros(22)
     for i in range(1,23):

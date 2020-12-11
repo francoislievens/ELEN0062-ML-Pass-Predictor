@@ -77,6 +77,16 @@ class Dataset():
         # Construct pairs dataset:
         y_pairs = None
         if y is not None:
+            
+            index_to_delete = []
+            for n in range(x.shape[0]):
+                if (y['receiver'].iloc[n] < 12 and x['sender'].iloc[n] >= 12) or (y['receiver'].iloc[n] >= 12 and x['sender'].iloc[n] < 12):
+                    index_to_delete.append(n)
+            x = x.drop(index_to_delete)
+            y = y.drop(index_to_delete)
+            dist_matrix = np.delete(dist_matrix, index_to_delete, 0)
+            
+            # make pairs
             x_pairs, y_pairs = self.make_players_pairs(x, y)
         else:
             x_pairs = self.make_players_pairs(x)
@@ -94,13 +104,13 @@ class Dataset():
         p_y_pos = np.repeat(p_y_pos, repeats=22, axis=0)
 
         # Is pass forward:
-        x_pairs = Features_computers.is_pass_forward(x_pairs)
+        x_pairs = Features_computers.is_pass_forward(x_pairs, p_x_pos)
         # Pass distance:
         x_pairs = Features_computers.pass_distance(x_pairs)
         # Compute min, avg and std distance between same team and opposant, sender and reciever:
         x_pairs = Features_computers.dist_tool(x_pairs, dist_matrix)
         # x_pairs = Features_computers.sender_players_distances(x, x_pairs)
-        # x_pairs = Features_computers.get_dist_from_adv_goal(x_pairs)
+        # x_pairs = Features_computers.get_dist_from_adv_goal(x_pairs, p_x_pos)
         # Max cosine similarity
         x_pairs = Features_computers.max_cosine_similarity(x_pairs, p_x_pos, p_y_pos)
         # Grid position
