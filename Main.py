@@ -3,10 +3,10 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from Dataset import Dataset
 from Neural import Neural
-import Features_computers
 from Forest import Forest
 import time
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 def neural_1():
 
@@ -30,24 +30,40 @@ def neural_1():
 
 
     report = model.train(report=True)
+    # Predict on the kaggle data
+    predictions = model.model(dataset.pairs_test_x)
+    pred = tf.reshape(predictions, (-1, 22))
+    pred = tf.nn.softmax(pred, axis=1)
+
+    pred_final = tf.argmax(pred, axis=1)
+    pred_final = pred_final.numpy()
+    pred_final += 1
+
+    result = np.zeros(len(pred_final))
+    # Manual accuracy:
+    for i in range(0, len(pred_final)):
+        print('{} - {}'.format(pred_final[i], model.dataset.original_test_y[i]))
+        if pred_final[i] == model.dataset.original_test_y[i]:
+            result[i] = 1
+    print('final test accuracy: {}'.format(np.mean(result)))
 
     # Predict on the kaggle data
     predictions = model.model(dataset.final_pairs)
-    pred = predictions.numpy()
-    pred = np.reshape(pred, (-1, 22))
-    pred_final = np.argmax(pred, axis=1)
+    pred = tf.reshape(predictions, (-1, 22))
+    pred = tf.nn.softmax(pred, axis=1)
+
+    pred_final = tf.argmax(pred, axis=1)
+    pred_final = pred_final.numpy()
     pred_final += 1
 
-    prd_sum = np.sum(pred, axis=1)
-    for i in range(0, pred.shape[0]):
-        pred[i, :] /= prd_sum[i]
-
-    write_submission(predictions=pred_final, probas=pred)
+    write_submission(predictions=pred_final, probas=pred.numpy())
 
     plt.plot(report[:, 0], report[:, 1], c='green', label='Test Loss')
     plt.plot(report[:, 0], report[:, 2], c='red', label='Train Loss')
-    plt.plot(report[:, 0], report[:, 3], c='blue', label='Test Accuracy')
-    plt.plot(report[:, 0], report[:, 4], c='orange', label='Train Accuracy')
+    plt.plot(report[:, 0], report[:, 3], c='blue', label='Test Loss pass predict')
+    plt.plot(report[:, 0], report[:, 4], c='orange', label='Train Loss pass predict')
+    plt.plot(report[:, 0], report[:, 5], c='blue', label='Test Accuracy pass predict')
+    plt.plot(report[:, 0], report[:, 6], c='orange', label='Train Accuracy pass predict')
     plt.xlabel('Epoch')
     plt.legend()
     plt.show()
@@ -109,7 +125,7 @@ def write_submission(predictions=None, probas=None, estimated_score=0.375, file_
     if predictions is None and probas is None:
         raise ValueError('Predictions and/or probas should be provided.')
 
-    n_samples = 3000
+    n_samples = len(predictions)
     if indexes is None:
         indexes = np.arange(n_samples)
 

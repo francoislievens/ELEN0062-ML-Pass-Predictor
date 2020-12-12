@@ -27,10 +27,9 @@ class Neural():
 
         # Default Layers list:
         self.layers_lst = [
-            ('relu', 50),
-            ('tanh', 50),
-            ('relu', 50),
-            ('tanh', 25),
+            ('tanh', 18),
+            ('relu', 18),
+            ('tanh', 18),
             ('relu', 15)
         ]
 
@@ -68,9 +67,8 @@ class Neural():
         # Loss computer:
         self.train_loss_object = tf.keras.losses.BinaryCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
         self.test_loss_object = tf.keras.losses.BinaryCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
-        #self.train_loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-        #self.test_loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-
+        self.train_sparse_loss_object = tf.keras.losses.SparseCategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
+        self.test_sparse_loss_object = tf.keras.losses.SparseCategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
         # Accuracy computer:
         self.train_accuracy_object = tf.keras.metrics.Accuracy()
         self.test_accuracy_object = tf.keras.metrics.Accuracy()
@@ -78,18 +76,20 @@ class Neural():
         # Loss accumulator:
         self.train_loss_store = tf.keras.metrics.Mean(name='train_loss')
         self.test_loss_store = tf.keras.metrics.Mean(name='test_loss')
+        self.train_loss_sparse_store = tf.keras.metrics.Mean(name='train_loss_sparse')
+        self.test_loss_sparse_store = tf.keras.metrics.Mean(name='test_loss_sparse')
         # Accuracy accumulator:
         self.train_accu_store = tf.keras.metrics.Mean(name='train_accuracy')
         self.test_accu_store = tf.keras.metrics.Mean(name='test_accuracy')
 
         # Optimizer
         #self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.00001)
-        self.optimizer = tf.keras.optimizers.Adam()
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
         # Training_set to use
         self.dataset = None
 
-    #@tf.function
+    @tf.function
     def train_step(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test,
                    original_y_train, original_y_test):
         """
@@ -103,7 +103,6 @@ class Neural():
             train_predictions = self.model(x_train)
             # Get the error:
             train_loss = self.train_loss_object(y_train, train_predictions, sample_weight=s_weights_train)
-
         # Compute the gradient who respect the loss
         gradients = tape.gradient(train_loss, self.model.trainable_variables)
         # Change weights of the model
@@ -112,44 +111,58 @@ class Neural():
         self.train_loss_store(train_loss)
 
         # ================================================ #
-        #                  Testing part:                   #
+        #          Perf Tracking: training set             #
         # ================================================ #
         # Compute Train accuracy:
         train_predictions = tf.reshape(train_predictions, shape=[-1, 22])
-        final_pred = tf.math.argmax(train_predictions, axis=1)
-        target = tf.cast(original_y_train, dtype=tf.int64)
-        target = tf.reshape(target, [-1])
+        # Make a softmax to normalize probabilities
+        train_predictions = tf.nn.softmax(train_predictions, axis=1)
+        # Get loss
+        train_loss = self.train_sparse_loss_object(original_y_train, train_predictions)
+        self.train_loss_sparse_store(train_loss)
+
+        # And accuracy:
+        final_prd = tf.argmax(train_predictions, axis=1)
         self.train_accuracy_object.reset_states()
-        self.train_accuracy_object(final_pred, target)
+        self.train_accuracy_object(final_prd, original_y_train)
         self.train_accu_store(self.train_accuracy_object.result())
 
-        # The same for the test set:
+        # ================================================ #
+        #          Perf Tracking: testing set              #
+        # ================================================ #
+
+        # Make predictions on testing set
         pred = self.model(x_test)
         # First classical loss:
         test_loss = self.test_loss_object(y_test, pred, sample_weight=s_weights_test)
         self.test_loss_store(test_loss)
+        # Receiver prediction loss
         pred = tf.reshape(pred, shape=[-1, 22])
+        pred = tf.nn.softmax(pred, axis=1)
+        loss = self.test_sparse_loss_object(original_y_test, pred)
+        self.test_loss_sparse_store(loss)
+
+        # And accuracy:
         final_pred = tf.math.argmax(pred, axis=1)
-        target = tf.cast(original_y_test, dtype=tf.int64)
         self.test_accuracy_object.reset_states()
-        self.test_accuracy_object(final_pred, target)
+        self.test_accuracy_object(final_pred, original_y_test)
         self.test_accu_store(self.test_accuracy_object.result())
 
 
     def train(self, report=False):
-        nb_epoch = 50
+        nb_epoch = 200
 
         x_train = self.dataset.pairs_train_x
         y_train = self.dataset.pairs_train_y
         x_test = self.dataset.pairs_test_x
         y_test = self.dataset.pairs_test_y
-        original_y_train = self.dataset.original_train_y
-        original_y_test = self.dataset.original_test_y
+        original_y_train = np.copy(self.dataset.original_train_y)
+        original_y_test = np.copy(self.dataset.original_test_y)
         original_y_train -= 1
         original_y_test -= 1
 
         # Store performances
-        tracker = np.zeros((nb_epoch, 5))
+        tracker = np.zeros((nb_epoch, 7))
 
         # Build sample weights:
         s_weights_train = np.ones(x_train.shape[0])
@@ -163,30 +176,37 @@ class Neural():
 
         s_weights_test = y_test * 21
         for epoch in range(0, nb_epoch):
-            for _ in range(0, 50):
+            for _ in range(0, 20):
                 # Make a train step
                 self.train_step(x_train, y_train, x_test, y_test, s_weights_train, s_weights_test, original_y_train,
                                 original_y_test)
+
             print('------------------------')
-            print('Epoch: {}'.format(epoch))
+            print('Epoch: {}'.format(epoch * 20))
             # Print the loss: return the mean of all error in the accumulator
-            print('Test Loss: %s' % self.test_loss_store.result())
+            print('Test Loss : %s' % self.test_loss_store.result())
             print('Train Loss: %s' % self.train_loss_store.result())
+            print('Test Loss player pred: %s' % self.test_loss_sparse_store.result())
+            print('Train Loss player pred: %s' % self.train_loss_sparse_store.result())
             print('Test Accuracy: %s' % self.test_accu_store.result())
             print('Train Accuracy: %s' % self.train_accu_store.result())
 
             # Store results:
-            tracker[epoch, 0] = epoch * 50
+            tracker[epoch, 0] = epoch * 20
             tracker[epoch, 1] = self.test_loss_store.result()
             tracker[epoch, 2] = self.train_loss_store.result()
-            tracker[epoch, 3] = self.test_accu_store.result()
-            tracker[epoch, 4] = self.train_accu_store.result()
+            tracker[epoch, 3] = self.test_loss_sparse_store.result()
+            tracker[epoch, 4] = self.train_loss_sparse_store.result()
+            tracker[epoch, 5] = self.test_accu_store.result()
+            tracker[epoch, 6] = self.train_accu_store.result()
 
             # Reset the accumulator
             self.train_loss_store.reset_states()
             self.test_loss_store.reset_states()
             self.train_accu_store.reset_states()
             self.train_accu_store.reset_states()
+            self.test_loss_sparse_store.reset_states()
+            self.train_loss_sparse_store.reset_states()
 
         if report:
             return tracker

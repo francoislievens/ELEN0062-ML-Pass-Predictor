@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-import Features_computers
 from sklearn.preprocessing import StandardScaler
 
 MAX_X_ABS_VAL = 5250
