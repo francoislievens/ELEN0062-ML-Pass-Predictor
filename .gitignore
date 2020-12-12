@@ -1,0 +1,4 @@
+
+personal_data/final_pairs.csv
+*.csv
+saved_models/forest_1.pkl
