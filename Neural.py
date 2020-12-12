@@ -28,17 +28,20 @@ class Neural():
         # Default Layers list:
         self.layers_lst = [
             ('tanh', 18),
-            ('relu', 18),
             ('tanh', 18),
-            ('relu', 15)
+            ('tanh', 18),
+            ('tanh', 15)
+        ]
+        self.layers_lst = [
+            ('tanh', 27),
+            ('relu', 27),
+            ('tanh', 27),
+            ('relu', 27)
         ]
 
 
-        if options != None:
-            self.nb_HL = options['nb_HL']
-            self.nb_feat = options['nb_feat']
-            self.HL_size = options['HL_size']
-            self.HL_activ = options['HL_activ']
+        if options != None and 'layers_lst' in options.keys():
+            self.layers_lst = options['layers_lst']
 
         # Create the model:
         self.model = tf.keras.models.Sequential()
@@ -83,11 +86,17 @@ class Neural():
         self.test_accu_store = tf.keras.metrics.Mean(name='test_accuracy')
 
         # Optimizer
-        #self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.00001)
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+        self.optimizer = None
+        if options is not None and 'learning_rate' in options.keys():
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate=options['learning_rate'])
+        else:
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
         # Training_set to use
         self.dataset = None
+
+        # Epoch counter:
+        self.iter = 0
 
     @tf.function
     def train_step(self, x_train, y_train, x_test, y_test, s_weights_train, s_weights_test,
@@ -148,9 +157,10 @@ class Neural():
         self.test_accuracy_object(final_pred, original_y_test)
         self.test_accu_store(self.test_accuracy_object.result())
 
+        self.iter += 1
 
-    def train(self, report=False):
-        nb_epoch = 200
+
+    def train(self, report=False, nb_epoch=100, silent=False):
 
         x_train = self.dataset.pairs_train_x
         y_train = self.dataset.pairs_train_y
@@ -173,7 +183,7 @@ class Neural():
         for i in range(0, x_test.shape[0]):
             if y_test[i] == 1:
                 s_weights_test[i] = 21
-
+        self.iter = 0
         s_weights_test = y_test * 21
         for epoch in range(0, nb_epoch):
             for _ in range(0, 20):
@@ -183,13 +193,16 @@ class Neural():
 
             print('------------------------')
             print('Epoch: {}'.format(epoch * 20))
-            # Print the loss: return the mean of all error in the accumulator
-            print('Test Loss : %s' % self.test_loss_store.result())
-            print('Train Loss: %s' % self.train_loss_store.result())
-            print('Test Loss player pred: %s' % self.test_loss_sparse_store.result())
-            print('Train Loss player pred: %s' % self.train_loss_sparse_store.result())
+
+            if not silent:
+                # Print the loss: return the mean of all error in the accumulator
+                print('Test Loss : %s' % self.test_loss_store.result())
+                print('Train Loss: %s' % self.train_loss_store.result())
+                print('Test Loss player pred: %s' % self.test_loss_sparse_store.result())
+                print('Train Loss player pred: %s' % self.train_loss_sparse_store.result())
+                print('Train Accuracy: %s' % self.train_accu_store.result())
             print('Test Accuracy: %s' % self.test_accu_store.result())
-            print('Train Accuracy: %s' % self.train_accu_store.result())
+
 
             # Store results:
             tracker[epoch, 0] = epoch * 20

@@ -92,7 +92,7 @@ class Dataset():
 
         return self.make_players_pairs(x, y)
 
-    def import_original_training(self, split_train=0.9, split_test=0.29, split_val=0.01):
+    def import_original_training(self, split_train=0.8):
 
         # Read the csv to pandas
         x_df = pd.read_csv('Original_data/input_training_set.csv', sep=',', index_col=46)
@@ -116,8 +116,6 @@ class Dataset():
         final = final_df.to_numpy()
 
         # Split the set
-        #x_train, x_t, y_train, y_t = train_test_split(x, y, test_size=(1-split_train), shuffle=True)
-        #x_test, x_valid, y_test, y_valid = train_test_split(x_t, y_t, test_size=(split_val / (split_test + split_val)), shuffle=True)
         x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=split_train, shuffle=True)
 
         # Store
@@ -126,8 +124,7 @@ class Dataset():
         self.original_test_x = x_test
         self.original_test_y = y_test
         self.final_set = final
-        #self.original_validation_x = x_valid
-        #self.original_validation_y = y_valid
+
 
     def make_players_pairs(self, x_df, y_df):
 
@@ -174,13 +171,16 @@ class Dataset():
         for i in range(0, n):
             # Set sender
             sender = int(x_df['sender'].iloc[i] - 1)
+            time = x_df['time_start'].iloc[i]
             passes[i, :, idx] = sender
+            passes[i, :, idx+1] = time
             # Set receivers:
             rec = np.arange(0, 22)
-            passes[i, :, idx+1] = rec
-            passes[i, :, idx+2] = x_pos[i, sender]
-        idx += 3
+            passes[i, :, idx+2] = rec
+            passes[i, :, idx+3] = x_pos[i, sender]
+        idx += 4
         labels.append('sender')
+        labels.append('time_start')
         labels.append('player_j')
         labels.append('sender_x')
         # Get reciever x position
@@ -350,6 +350,7 @@ class Dataset():
 
         # DATA NORMALIZATION:
         passes_df['pass_dist'] /= MAX_Y_ABS_VAL
+        passes_df['time_start'] /= 1000 * 60 * 45
         passes_df['forward_dist'] /= MAX_Y_ABS_VAL
         passes_df['first_sender_defender_dist'] /= MAX_Y_ABS_VAL
         passes_df['sec_sender_defender_dist'] /= MAX_Y_ABS_VAL
